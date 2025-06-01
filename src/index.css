@@ -191,7 +191,11 @@
 
   /* Input styles */
   .input-floating {
-    @apply w-full px-4 pt-6 pb-2 text-base bg-transparent border-2 border-muted rounded-lg transition-all duration-300 focus:border-health-primary focus:outline-none peer;
+    @apply w-full px-4 pt-6 pb-2 text-base bg-transparent border-2 border-muted rounded-lg transition-all duration-300 focus:border-health-primary focus:outline-none;
+  }
+
+  .input-floating.peer {
+    /* Apply peer class separately as it cannot be used with @apply */
   }
 
   .label-floating {
