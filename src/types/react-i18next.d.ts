@@ -5,7 +5,7 @@ declare module 'react-i18next' {
   interface CustomTypeOptions {
     defaultNS: 'translation';
     resources: {
-      translation: Record<string, any>;
+      translation: Record<string, string>;
     };
   }
 }
