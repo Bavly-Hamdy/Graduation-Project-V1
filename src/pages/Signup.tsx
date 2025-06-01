@@ -147,8 +147,8 @@ const Signup = () => {
     }
   };
 
-  const handleOTPKeyDown = (e: React.KeyboardEvent, index: number, type: 'email' | 'sms') => {
-    if (e.key === 'Backspace' && !e.currentTarget.value && index > 0) {
+  const handleOTPKeyDown = (e: React.KeyboardEvent<HTMLInputElement>, index: number, type: 'email' | 'sms') => {
+    if (e.key === 'Backspace' && !(e.target as HTMLInputElement).value && index > 0) {
       const prevField = document.getElementById(`${type}-otp-${index - 1}`);
       prevField?.focus();
     }

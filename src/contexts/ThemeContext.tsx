@@ -3,7 +3,7 @@ import React, { createContext, useContext, useEffect, useState } from 'react';
 
 type Theme = 'light' | 'dark';
 type FontSize = 'small' | 'medium' | 'large';
-type ColorScheme = 'default' | 'high-contrast' | 'custom';
+type ColorScheme = 'default' | 'highContrast' | 'custom';
 
 interface ThemeContextType {
   theme: Theme;
