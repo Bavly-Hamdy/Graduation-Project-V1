@@ -1,0 +1,256 @@
+
+{
+  "app": {
+    "name": "CareCompanion",
+    "tagline": "Your ultimate health companion for real-time monitoring, AI insights, and personalized care."
+  },
+  "navigation": {
+    "home": "Home",
+    "about": "About Us",
+    "chatbot": "Chatbot",
+    "contact": "Contact Us",
+    "login": "Login",
+    "signup": "Sign Up",
+    "logout": "Logout",
+    "manageAccount": "Manage Account",
+    "settings": "Settings"
+  },
+  "hero": {
+    "title": "Welcome to CareCompanion",
+    "subtitle": "Your Ultimate Health Companion",
+    "description": "Real-time vitals, AI-driven predictions, and personalized reminders—all in one place.",
+    "downloadIOS": "Download for iOS",
+    "downloadAndroid": "Download for Android",
+    "playDemo": "Play Demo",
+    "joinWaitlist": "Join Our Waitlist",
+    "customization": {
+      "fontSize": "Font Size",
+      "small": "Small",
+      "medium": "Medium",
+      "large": "Large",
+      "colorScheme": "Color Scheme",
+      "default": "Default Health Blue",
+      "highContrast": "High Contrast",
+      "custom": "Custom Primary"
+    }
+  },
+  "features": {
+    "title": "Key Features",
+    "realTimeMonitoring": {
+      "title": "Real-Time Vitals Monitoring",
+      "description": "Monitor BP, HR, Temperature, O₂, and Glucose levels in real time."
+    },
+    "aiPredictions": {
+      "title": "AI-Powered Predictions & Insights",
+      "description": "Get intelligent health predictions and personalized insights."
+    },
+    "smartReminders": {
+      "title": "Smart Reminders & Medication Scheduling",
+      "description": "Never miss your medications with smart scheduling."
+    },
+    "deviceIntegration": {
+      "title": "Portable Device Integration",
+      "description": "Seamlessly connect with your health monitoring devices (MAX30100, MLX90614, AD8232, MPU6050)."
+    },
+    "accessibility": {
+      "title": "Text-to-Speech & Voice Assistant",
+      "description": "Accessibility-first design with voice assistance."
+    },
+    "customPlans": {
+      "title": "Custom Plans & PDF Export",
+      "description": "Create custom health plans and export detailed reports."
+    }
+  },
+  "demo": {
+    "title": "Watch Demo",
+    "description": "See CareCompanion in action"
+  },
+  "waitlist": {
+    "title": "Join Our Waitlist",
+    "subtitle": "Be the first to know when we launch.",
+    "emailPlaceholder": "Enter your email address",
+    "notifyMe": "Notify Me",
+    "success": "Thank you! We'll keep you posted.",
+    "error": "Invalid email or server error. Please try again."
+  },
+  "footer": {
+    "quickLinks": "Quick Links",
+    "social": "Follow Us",
+    "copyright": "© 2025 CareCompanion. All rights reserved.",
+    "privacy": "Privacy Policy",
+    "terms": "Terms of Service"
+  },
+  "about": {
+    "title": "Our Mission & Vision",
+    "subtitle": "Empowering patients with real-time health insights and AI-driven support.",
+    "projectIdea": {
+      "title": "Project Idea",
+      "description": "A portable health device and integrated Web/Mobile app to measure and monitor vital signs for elderly and chronic patients."
+    },
+    "coreFeatures": {
+      "title": "Core Features",
+      "items": [
+        "Real-time health monitoring",
+        "AI-powered health assistant",
+        "Personalized medication reminders",
+        "Predictive health models",
+        "Text-to-speech accessibility",
+        "Comprehensive health reports"
+      ]
+    },
+    "technologies": {
+      "title": "Technologies",
+      "description": "React, React Native, Firebase (Auth, Firestore, Realtime DB), Tailwind CSS, AI Models (Gemini/GPT), Node.js/Cloud Functions for backend."
+    },
+    "academicContext": {
+      "title": "Academic Context",
+      "description": "Senior graduation project at King Salman International University, Software Engineering Department."
+    },
+    "mission": {
+      "title": "Mission Statement",
+      "description": "To empower patients to manage chronic conditions through real-time data and AI insights."
+    },
+    "team": {
+      "title": "Meet the Team"
+    },
+    "techStack": {
+      "title": "Technology Stack"
+    }
+  },
+  "contact": {
+    "title": "Contact Us",
+    "info": {
+      "email": "support@carecompanion.com",
+      "phone": "+20-123-456-7890",
+      "office": "Software Engineering Department, King Salman International University"
+    },
+    "form": {
+      "name": "Name",
+      "email": "Email",
+      "subject": "Subject",
+      "message": "Message",
+      "submit": "Send Message",
+      "success": "Thank you! We've received your message.",
+      "error": "Submission failed. Please try again."
+    }
+  },
+  "auth": {
+    "signup": {
+      "title": "Create an Account",
+      "subtitle": "Secure your health insights with personalized access.",
+      "firstName": "First Name",
+      "lastName": "Last Name",
+      "email": "Email",
+      "phone": "Phone Number",
+      "password": "Password",
+      "confirmPassword": "Confirm Password",
+      "getOTP": "Get OTP",
+      "completeRegistration": "Complete Registration",
+      "welcome": "Welcome, {{name}}! Your account has been created."
+    },
+    "login": {
+      "title": "Log In to Your Account",
+      "subtitle": "Access your health dashboard and AI assistant.",
+      "emailOrPhone": "Email or Phone Number",
+      "password": "Password",
+      "forgotPassword": "Forgot Password?",
+      "submit": "Log In",
+      "welcomeBack": "Welcome back, {{name}}!",
+      "invalidCredentials": "Invalid credentials. Please try again."
+    },
+    "otp": {
+      "title": "Enter the OTPs sent to your email and phone.",
+      "verify": "Verify",
+      "resend": "Resend OTP",
+      "invalid": "OTP invalid or expired. Please resend."
+    },
+    "forgotPassword": {
+      "title": "Reset Password",
+      "email": "Email",
+      "send": "Send Reset Link",
+      "success": "Password reset email sent. Check your inbox."
+    }
+  },
+  "account": {
+    "title": "Manage Your Account",
+    "firstName": "First Name",
+    "lastName": "Last Name",
+    "email": "Email",
+    "phone": "Phone Number",
+    "language": "Preferred Language",
+    "theme": "Theme Preference",
+    "light": "Light",
+    "dark": "Dark",
+    "saveChanges": "Save Changes",
+    "success": "Profile updated successfully.",
+    "error": "Unable to update profile. Please try again.",
+    "deleteAccount": {
+      "title": "Delete My Account",
+      "warning": "This action cannot be undone.",
+      "confirm": "Are you sure you want to delete your account? This action is irreversible.",
+      "delete": "Delete Account",
+      "cancel": "Cancel",
+      "confirmDelete": "Confirm Delete",
+      "success": "Your account has been permanently deleted."
+    }
+  },
+  "settings": {
+    "title": "Settings & Preferences",
+    "accessibility": {
+      "title": "Accessibility",
+      "screenReader": "Enable Screen Reader Mode",
+      "tts": "Enable Text-to-Speech",
+      "fontSize": "Font Size",
+      "highContrast": "Enable High Contrast Mode"
+    },
+    "notifications": {
+      "title": "Notifications & Data Export",
+      "email": "Receive Email Notifications",
+      "emailDescription": "Toggle to receive updates, reminders, and health tips via email.",
+      "exportData": "Export My Data",
+      "exportSuccess": "Your data has been exported successfully.",
+      "exportError": "Unable to export data. Please try again.",
+      "generating": "Generating your report…"
+    }
+  },
+  "chatbot": {
+    "title": "Health Assistant",
+    "placeholder": "Type your message…",
+    "thinking": "AI is thinking…",
+    "clearChat": "Clear Chat",
+    "confirmClear": "Are you sure you want to clear this chat?",
+    "chatCleared": "Chat cleared."
+  },
+  "common": {
+    "loading": "Loading...",
+    "error": "An error occurred",
+    "tryAgain": "Try Again",
+    "cancel": "Cancel",
+    "confirm": "Confirm",
+    "save": "Save",
+    "edit": "Edit",
+    "delete": "Delete",
+    "close": "Close",
+    "next": "Next",
+    "previous": "Previous",
+    "submit": "Submit",
+    "search": "Search",
+    "filter": "Filter",
+    "sort": "Sort",
+    "export": "Export",
+    "import": "Import",
+    "copy": "Copy",
+    "share": "Share",
+    "print": "Print",
+    "download": "Download",
+    "upload": "Upload",
+    "refresh": "Refresh",
+    "retry": "Retry",
+    "back": "Back",
+    "continue": "Continue",
+    "skip": "Skip",
+    "finish": "Finish",
+    "yes": "Yes",
+    "no": "No"
+  }
+}
