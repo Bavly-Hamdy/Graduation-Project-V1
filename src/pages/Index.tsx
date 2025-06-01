@@ -4,6 +4,9 @@ import { motion, useScroll, useTransform } from 'framer-motion';
 import { useI18n } from '@/contexts/I18nContext';
 import { useTheme } from '@/contexts/ThemeContext';
 import MainLayout from '@/components/layout/MainLayout';
+import PhoneMockup from '@/components/demo/PhoneMockup';
+import FontSizeSlider from '@/components/demo/FontSizeSlider';
+import ColorSchemeSelector from '@/components/demo/ColorSchemeSelector';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { 
@@ -27,6 +30,28 @@ const Index = () => {
   const { scrollY } = useScroll();
   const [email, setEmail] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
+  
+  // Demo Controls State
+  const [demoFontSize, setDemoFontSize] = useState(16);
+  const [demoAccentColor, setDemoAccentColor] = useState('#06B6D4');
+
+  // Load saved preferences
+  useEffect(() => {
+    const savedFontSize = localStorage.getItem('demoFontSize');
+    const savedAccentColor = localStorage.getItem('demoAccentColor');
+    
+    if (savedFontSize) setDemoFontSize(parseInt(savedFontSize));
+    if (savedAccentColor) setDemoAccentColor(savedAccentColor);
+  }, []);
+
+  // Save preferences when changed
+  useEffect(() => {
+    localStorage.setItem('demoFontSize', demoFontSize.toString());
+  }, [demoFontSize]);
+
+  useEffect(() => {
+    localStorage.setItem('demoAccentColor', demoAccentColor);
+  }, [demoAccentColor]);
 
   // Parallax effects
   const heroY = useTransform(scrollY, [0, 500], [0, 150]);
@@ -218,53 +243,97 @@ const Index = () => {
               </Button>
             </motion.div>
 
-            {/* Customization Panel */}
+            {/* Interactive Demo Section */}
             <motion.div
-              className="glass-card p-6 rounded-2xl max-w-md mx-auto"
+              className="glass-card-elevated p-8 rounded-3xl max-w-6xl mx-auto"
               variants={itemVariants}
             >
-              <div className="grid grid-cols-2 gap-6">
-                {/* Font Size Control */}
-                <div>
-                  <label className="block text-sm font-medium mb-2">
-                    {t('hero.customization.fontSize')}
-                  </label>
-                  <div className="space-y-2">
-                    {(['small', 'medium', 'large'] as const).map((size) => (
-                      <button
-                        key={size}
-                        onClick={() => setFontSize(size)}
-                        className={`w-full p-2 rounded-lg text-sm transition-all ${
-                          fontSize === size
-                            ? 'bg-health-primary text-white'
-                            : 'glass-card hover:bg-white/20 dark:hover:bg-black/30'
-                        }`}
-                      >
-                        {t(`hero.customization.${size}`)}
-                      </button>
-                    ))}
-                  </div>
+              <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 items-center">
+                {/* Phone Mockup */}
+                <div className="lg:col-span-1 flex justify-center">
+                  <PhoneMockup 
+                    fontSize={demoFontSize} 
+                    accentColor={demoAccentColor}
+                  />
                 </div>
 
-                {/* Color Scheme Control */}
-                <div>
-                  <label className="block text-sm font-medium mb-2">
-                    {t('hero.customization.colorScheme')}
-                  </label>
-                  <div className="space-y-2">
-                    {(['default', 'highContrast', 'custom'] as const).map((scheme) => (
-                      <button
-                        key={scheme}
-                        onClick={() => setColorScheme(scheme)}
-                        className={`w-full p-2 rounded-lg text-sm transition-all ${
-                          colorScheme === scheme
-                            ? 'bg-health-primary text-white'
-                            : 'glass-card hover:bg-white/20 dark:hover:bg-black/30'
-                        }`}
-                      >
-                        {t(`hero.customization.${scheme}`)}
-                      </button>
-                    ))}
+                {/* Controls */}
+                <div className="lg:col-span-2 space-y-8">
+                  <div className="text-center lg:text-left">
+                    <h3 className="text-2xl font-bold mb-3 text-gradient">
+                      Interactive Demo
+                    </h3>
+                    <p className="text-muted-foreground">
+                      Experience how CareCompanion adapts to your preferences in real-time
+                    </p>
+                  </div>
+
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    {/* Font Size Control */}
+                    <div className="glass-card p-6 rounded-2xl">
+                      <FontSizeSlider 
+                        value={demoFontSize}
+                        onChange={setDemoFontSize}
+                      />
+                    </div>
+
+                    {/* Color Scheme Control */}
+                    <div className="glass-card p-6 rounded-2xl">
+                      <ColorSchemeSelector 
+                        selectedColor={demoAccentColor}
+                        onChange={setDemoAccentColor}
+                      />
+                    </div>
+                  </div>
+
+                  {/* Global Customization Panel */}
+                  <div className="glass-card p-6 rounded-2xl">
+                    <h4 className="font-semibold mb-4">Global Preferences</h4>
+                    <div className="grid grid-cols-2 gap-6">
+                      {/* Font Size Control */}
+                      <div>
+                        <label className="block text-sm font-medium mb-2">
+                          {t('hero.customization.fontSize')}
+                        </label>
+                        <div className="space-y-2">
+                          {(['small', 'medium', 'large'] as const).map((size) => (
+                            <button
+                              key={size}
+                              onClick={() => setFontSize(size)}
+                              className={`w-full p-2 rounded-lg text-sm transition-all ${
+                                fontSize === size
+                                  ? 'bg-health-primary text-white'
+                                  : 'glass-card hover:bg-white/20 dark:hover:bg-black/30'
+                              }`}
+                            >
+                              {t(`hero.customization.${size}`)}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+
+                      {/* Color Scheme Control */}
+                      <div>
+                        <label className="block text-sm font-medium mb-2">
+                          {t('hero.customization.colorScheme')}
+                        </label>
+                        <div className="space-y-2">
+                          {(['default', 'highContrast', 'custom'] as const).map((scheme) => (
+                            <button
+                              key={scheme}
+                              onClick={() => setColorScheme(scheme)}
+                              className={`w-full p-2 rounded-lg text-sm transition-all ${
+                                colorScheme === scheme
+                                  ? 'bg-health-primary text-white'
+                                  : 'glass-card hover:bg-white/20 dark:hover:bg-black/30'
+                              }`}
+                            >
+                              {t(`hero.customization.${scheme}`)}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                    </div>
                   </div>
                 </div>
               </div>

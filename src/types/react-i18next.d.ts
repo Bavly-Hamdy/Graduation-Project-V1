@@ -1,5 +1,6 @@
 
 import 'react-i18next';
+import { ReactNode } from 'react';
 
 declare module 'react-i18next' {
   interface CustomTypeOptions {
@@ -8,4 +9,8 @@ declare module 'react-i18next' {
       translation: Record<string, string>;
     };
   }
+}
+
+declare module 'react-i18next' {
+  export type ReactI18NextChildren = ReactNode;
 }
