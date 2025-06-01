@@ -76,9 +76,7 @@ const Contact = () => {
     // Show success toast
     toast({
       title: language === 'en' ? "Email Client Opened" : "تم فتح عميل البريد الإلكتروني",
-      description: language === 'en' 
-        ? "Your email client has opened. Send the message to contact us."
-        : "تم فتح عميل البريد الإلكتروني لديك. أرسل الرسالة للاتصال بنا."
+      description: t('contact.form.success')
     });
 
     // Clear form
@@ -94,21 +92,20 @@ const Contact = () => {
     {
       icon: Mail,
       label: language === 'en' ? 'Email' : 'البريد الإلكتروني',
-      value: 'Bavly.morgan2030@gmail.com',
+      value: t('contact.info.email'),
       color: 'text-health-primary'
     },
     {
       icon: Phone,
       label: language === 'en' ? 'Phone' : 'الهاتف',
-      value: '+20-123-456-7890',
-      color: 'text-health-secondary'
+      value: t('contact.info.phone'),
+      color: 'text-health-secondary',
+      flag: '🇪🇬'
     },
     {
       icon: MapPin,
       label: language === 'en' ? 'Office' : 'المكتب',
-      value: language === 'en' 
-        ? 'Software Engineering Department, King Salman International University'
-        : 'قسم هندسة البرمجيات، جامعة الملك سلمان الدولية',
+      value: t('contact.info.office'),
       color: 'text-health-success'
     }
   ];
@@ -133,9 +130,7 @@ const Contact = () => {
               </span>
             </h1>
             <p className="text-fluid-lg text-muted-foreground max-w-2xl mx-auto">
-              {language === 'en'
-                ? "Have questions? We're here to help. Send us a message, and we'll respond via email."
-                : "هل لديك أسئلة؟ نحن هنا للمساعدة. أرسل لنا رسالة وسنرد عبر البريد الإلكتروني."}
+              {t('contact.subtitle')}
             </p>
           </motion.div>
 
@@ -166,7 +161,9 @@ const Contact = () => {
                     className="input-floating peer"
                     required
                   />
-                  <label className="label-floating">
+                  <label className={`label-floating transition-all duration-150 ${
+                    formData.name ? 'top-2 text-xs text-health-primary' : 'top-4 text-muted-foreground'
+                  }`}>
                     {t('contact.form.name')}
                   </label>
                 </div>
@@ -182,7 +179,9 @@ const Contact = () => {
                     className="input-floating peer"
                     required
                   />
-                  <label className="label-floating">
+                  <label className={`label-floating transition-all duration-150 ${
+                    formData.email ? 'top-2 text-xs text-health-primary' : 'top-4 text-muted-foreground'
+                  }`}>
                     {t('contact.form.email')}
                   </label>
                 </div>
@@ -198,7 +197,9 @@ const Contact = () => {
                     className="input-floating peer"
                     required
                   />
-                  <label className="label-floating">
+                  <label className={`label-floating transition-all duration-150 ${
+                    formData.subject ? 'top-2 text-xs text-health-primary' : 'top-4 text-muted-foreground'
+                  }`}>
                     {t('contact.form.subject')}
                   </label>
                 </div>
@@ -214,7 +215,9 @@ const Contact = () => {
                     className="input-floating peer resize-none"
                     required
                   />
-                  <label className="label-floating">
+                  <label className={`label-floating transition-all duration-150 ${
+                    formData.message ? 'top-2 text-xs text-health-primary' : 'top-4 text-muted-foreground'
+                  }`}>
                     {t('contact.form.message')}
                   </label>
                 </div>
@@ -253,8 +256,16 @@ const Contact = () => {
                       whileHover={{ x: 5 }}
                       transition={{ duration: 0.2 }}
                     >
-                      <div className={`w-10 h-10 ${info.color.replace('text-', 'bg-')}/10 rounded-xl flex items-center justify-center mr-4 group-hover:scale-110 transition-transform`}>
+                      <div className={`w-10 h-10 ${info.color.replace('text-', 'bg-')}/10 rounded-xl flex items-center justify-center mr-4 group-hover:scale-110 transition-transform relative`}>
                         <info.icon className={`w-5 h-5 ${info.color}`} />
+                        {info.flag && (
+                          <motion.span 
+                            className="absolute -top-1 -right-1 text-xs"
+                            whileHover={{ y: -2 }}
+                          >
+                            {info.flag}
+                          </motion.span>
+                        )}
                       </div>
                       <div className="flex-1">
                         <h3 className="font-semibold mb-1">{info.label}</h3>

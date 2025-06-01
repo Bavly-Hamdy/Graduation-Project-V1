@@ -16,7 +16,7 @@ import {
 } from 'lucide-react';
 
 const About = () => {
-  const { t } = useI18n();
+  const { t, language } = useI18n();
   const { theme } = useTheme();
 
   const containerVariants = {
@@ -38,30 +38,6 @@ const About = () => {
       transition: { duration: 0.8, ease: "easeOut" }
     }
   };
-
-  const teamMembers = [
-    {
-      name: "Bavly Hamdy / بافلي حمدي",
-      role: "Team Leader & Full-Stack Developer",
-      roleAr: "قائد الفريق ومطور متكامل",
-      description: "Oversees full-stack integration, AI model coordination, and overall project architecture.",
-      descriptionAr: "يشرف على التكامل المتكامل وتنسيق نماذج الذكاء الاصطناعي والهندسة العامة للمشروع."
-    },
-    {
-      name: "Yahia Mohamed / يحيى محمد", 
-      role: "AI Specialist & Backend Integration",
-      roleAr: "أخصائي ذكاء اصطناعي وتكامل خلفي",
-      description: "Designs AI pipelines, integrates Gemini API, and manages backend data flows.",
-      descriptionAr: "يصمم خطوط أنابيب الذكاء الاصطناعي ويدمج Gemini API ويدير تدفقات البيانات الخلفية."
-    },
-    {
-      name: "Eyad Mahmoud / إياد محمود",
-      role: "Database & Firebase Configuration", 
-      roleAr: "قاعدة البيانات وتكوين Firebase",
-      description: "Implements Firestore schema, Realtime Database listeners, and analytics.",
-      descriptionAr: "ينفذ مخطط Firestore ومستمعي قاعدة البيانات في الوقت الفعلي والتحليلات."
-    }
-  ];
 
   const projectPhases = [
     {
@@ -177,7 +153,7 @@ const About = () => {
         </motion.div>
       </section>
 
-      {/* Problem Statement & Solution */}
+      {/* Who We Are Section */}
       <section className="section-padding bg-card/50">
         <motion.div
           className="container-custom"
@@ -186,6 +162,45 @@ const About = () => {
           whileInView="visible"
           viewport={{ once: true, margin: "-100px" }}
         >
+          <motion.div className="text-center mb-16" variants={itemVariants}>
+            <h2 className="text-fluid-2xl font-bold mb-4 text-gradient">
+              {t('about.whoWeAre.title')}
+            </h2>
+          </motion.div>
+
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mb-16">
+            <motion.div className="glass-card p-6 rounded-2xl" variants={itemVariants}>
+              <Lightbulb className="w-12 h-12 text-health-primary mb-4" />
+              <h3 className="text-xl font-semibold mb-3">
+                {t('about.whoWeAre.background.title')}
+              </h3>
+              <p className="text-muted-foreground leading-relaxed">
+                {t('about.whoWeAre.background.description')}
+              </p>
+            </motion.div>
+
+            <motion.div className="glass-card p-6 rounded-2xl" variants={itemVariants}>
+              <Target className="w-12 h-12 text-health-secondary mb-4" />
+              <h3 className="text-xl font-semibold mb-3">
+                {t('about.whoWeAre.story.title')}
+              </h3>
+              <p className="text-muted-foreground leading-relaxed">
+                {t('about.whoWeAre.story.description')}
+              </p>
+            </motion.div>
+
+            <motion.div className="glass-card p-6 rounded-2xl" variants={itemVariants}>
+              <Award className="w-12 h-12 text-health-success mb-4" />
+              <h3 className="text-xl font-semibold mb-3">
+                {t('about.whoWeAre.uniqueness.title')}
+              </h3>
+              <p className="text-muted-foreground leading-relaxed">
+                {t('about.whoWeAre.uniqueness.description')}
+              </p>
+            </motion.div>
+          </div>
+
+          {/* Problem Statement & Solution */}
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
             <motion.div variants={itemVariants} className="space-y-8">
               <div>
@@ -199,10 +214,10 @@ const About = () => {
 
               <div>
                 <h3 className="text-xl font-semibold mb-4">
-                  {t('about.mission.title')}
+                  {t('about.solution.title')}
                 </h3>
                 <p className="text-muted-foreground leading-relaxed">
-                  {t('about.mission.description')}
+                  {t('about.solution.description')}
                 </p>
               </div>
 
@@ -248,7 +263,7 @@ const About = () => {
         </motion.div>
       </section>
 
-      {/* Core Features */}
+      {/* Project Background Section */}
       <section className="section-padding">
         <motion.div
           className="container-custom"
@@ -259,8 +274,11 @@ const About = () => {
         >
           <motion.div className="text-center mb-16" variants={itemVariants}>
             <h2 className="text-fluid-2xl font-bold mb-4 text-gradient">
-              {t('about.coreFeatures.title')}
+              {t('about.projectBackground.title')}
             </h2>
+            <p className="text-muted-foreground max-w-4xl mx-auto leading-relaxed">
+              {t('about.projectBackground.description')}
+            </p>
           </motion.div>
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
@@ -275,10 +293,10 @@ const About = () => {
                   <feature.icon className="w-8 h-8 text-health-primary" />
                 </div>
                 <h3 className="text-xl font-semibold mb-3">
-                  {feature.title}
+                  {language === 'en' ? feature.title : feature.titleAr}
                 </h3>
                 <p className="text-muted-foreground leading-relaxed">
-                  {feature.description}
+                  {language === 'en' ? feature.description : feature.descriptionAr}
                 </p>
               </motion.div>
             ))}
@@ -301,46 +319,82 @@ const About = () => {
             </h2>
           </motion.div>
 
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-            {teamMembers.map((member, index) => (
-              <motion.div
-                key={index}
-                className="glass-card p-6 rounded-2xl text-center group hover:scale-105 transition-all duration-300"
-                variants={itemVariants}
-                whileHover={{ rotateY: 5 }}
-              >
-                <div className="w-20 h-20 bg-gradient-health rounded-full flex items-center justify-center mx-auto mb-4 group-hover:scale-110 transition-transform">
-                  <Users className="w-10 h-10 text-white" />
-                </div>
-                <h3 className="text-lg font-semibold mb-2">
-                  {member.name}
-                </h3>
-                <p className="text-health-primary font-medium mb-3">
-                  {member.role}
-                </p>
-                <p className="text-muted-foreground text-sm leading-relaxed">
-                  {member.description}
-                </p>
-              </motion.div>
-            ))}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mb-16">
+            {/* Team Members - Only show in selected language */}
+            <motion.div
+              className="glass-card p-6 rounded-2xl text-center group hover:scale-105 transition-all duration-300"
+              variants={itemVariants}
+              whileHover={{ rotateY: 5 }}
+            >
+              <div className="w-20 h-20 bg-gradient-health rounded-full flex items-center justify-center mx-auto mb-4 group-hover:scale-110 transition-transform">
+                <Users className="w-10 h-10 text-white" />
+              </div>
+              <h3 className="text-lg font-semibold mb-2">
+                {t('about.team.members.bavly.name')}
+              </h3>
+              <p className="text-health-primary font-medium mb-3">
+                {t('about.team.members.bavly.role')}
+              </p>
+              <p className="text-muted-foreground text-sm leading-relaxed">
+                {t('about.team.members.bavly.description')}
+              </p>
+            </motion.div>
+
+            <motion.div
+              className="glass-card p-6 rounded-2xl text-center group hover:scale-105 transition-all duration-300"
+              variants={itemVariants}
+              whileHover={{ rotateY: 5 }}
+            >
+              <div className="w-20 h-20 bg-gradient-health rounded-full flex items-center justify-center mx-auto mb-4 group-hover:scale-110 transition-transform">
+                <Users className="w-10 h-10 text-white" />
+              </div>
+              <h3 className="text-lg font-semibold mb-2">
+                {t('about.team.members.yahia.name')}
+              </h3>
+              <p className="text-health-primary font-medium mb-3">
+                {t('about.team.members.yahia.role')}
+              </p>
+              <p className="text-muted-foreground text-sm leading-relaxed">
+                {t('about.team.members.yahia.description')}
+              </p>
+            </motion.div>
+
+            <motion.div
+              className="glass-card p-6 rounded-2xl text-center group hover:scale-105 transition-all duration-300"
+              variants={itemVariants}
+              whileHover={{ rotateY: 5 }}
+            >
+              <div className="w-20 h-20 bg-gradient-health rounded-full flex items-center justify-center mx-auto mb-4 group-hover:scale-110 transition-transform">
+                <Users className="w-10 h-10 text-white" />
+              </div>
+              <h3 className="text-lg font-semibold mb-2">
+                {t('about.team.members.eyad.name')}
+              </h3>
+              <p className="text-health-primary font-medium mb-3">
+                {t('about.team.members.eyad.role')}
+              </p>
+              <p className="text-muted-foreground text-sm leading-relaxed">
+                {t('about.team.members.eyad.description')}
+              </p>
+            </motion.div>
           </div>
 
           {/* Advisors */}
-          <motion.div className="mt-16" variants={itemVariants}>
-            <h3 className="text-xl font-semibold text-center mb-8">Academic Advisors</h3>
+          <motion.div variants={itemVariants}>
+            <h3 className="text-xl font-semibold text-center mb-8">{t('about.team.advisors.title')}</h3>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-8 max-w-4xl mx-auto">
               <div className="glass-card p-6 rounded-2xl text-center">
                 <Award className="w-12 h-12 text-health-primary mx-auto mb-4" />
-                <h4 className="font-semibold mb-2">Dr. Wael Fawaz / د. وائل فواز</h4>
+                <h4 className="font-semibold mb-2">{t('about.team.advisors.wael.name')}</h4>
                 <p className="text-muted-foreground text-sm">
-                  System design, medical device integration, and academic rigor guidance
+                  {t('about.team.advisors.wael.description')}
                 </p>
               </div>
               <div className="glass-card p-6 rounded-2xl text-center">
                 <Award className="w-12 h-12 text-health-primary mx-auto mb-4" />
-                <h4 className="font-semibold mb-2">Dr. Mohamed Badawi / د. محمد بدوي</h4>
+                <h4 className="font-semibold mb-2">{t('about.team.advisors.mohamed.name')}</h4>
                 <p className="text-muted-foreground text-sm">
-                  AI validation, data accuracy, and research methodology oversight
+                  {t('about.team.advisors.mohamed.description')}
                 </p>
               </div>
             </div>
@@ -381,10 +435,10 @@ const About = () => {
                   <div className={`ml-12 md:ml-0 md:w-1/2 ${index % 2 === 0 ? 'md:pr-8' : 'md:pl-8'}`}>
                     <div className="glass-card p-6 rounded-2xl">
                       <div className="text-health-primary font-semibold mb-2">
-                        {phase.phase}
+                        {language === 'en' ? phase.phase : phase.phaseAr}
                       </div>
                       <h3 className="text-xl font-bold mb-3">
-                        {phase.title}
+                        {language === 'en' ? phase.title : phase.titleAr}
                       </h3>
                       <p className="text-muted-foreground">
                         {phase.description}

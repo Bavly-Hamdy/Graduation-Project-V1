@@ -83,15 +83,38 @@
   "about": {
     "title": "Our Mission & Vision",
     "subtitle": "Empowering patients with real-time health insights and AI-driven support.",
+    "whoWeAre": {
+      "title": "Who We Are",
+      "background": {
+        "title": "Why We Started",
+        "description": "Elderly and chronic patients often lack reliable ways to track essential vitals outside clinical settings. Missing timely measurements can lead to preventable complications. We built CareCompanion to bridge this gap."
+      },
+      "story": {
+        "title": "Our Journey",
+        "description": "What began as a university project evolved into a comprehensive health monitoring solution. Our team combined expertise in AI, hardware integration, and user experience to create something truly impactful."
+      },
+      "uniqueness": {
+        "title": "What Sets Us Apart",
+        "description": "We don't just monitor—we predict, analyze, and guide. Our AI-powered insights help users understand their health patterns and take proactive steps."
+      }
+    },
     "projectIdea": {
       "title": "Project Idea",
-      "description": "A portable health device and integrated Web/Mobile app to measure and monitor vital signs for elderly and chronic patients."
+      "description": "A portable health device paired with a sophisticated Web/Mobile app that continuously measures Blood Pressure, Heart Rate, Temperature, Oxygen Saturation, and Glucose."
+    },
+    "solution": {
+      "title": "Our Solution", 
+      "description": "We developed a portable health device paired with a sophisticated Web/Mobile app—CareCompanion—that continuously measures Blood Pressure, Heart Rate, Temperature, Oxygen Saturation, and Glucose. Combined with AI-powered insights and personalized reminders, patients stay in control of their health."
+    },
+    "projectBackground": {
+      "title": "Project Background",
+      "description": "Our portable device features a comprehensive sensor suite including MAX30100 for SpO₂ and heart rate monitoring, MLX90614 for non-contact temperature measurement, AD8232 for ECG readings, and MPU6050 for movement detection. The device connects via Bluetooth to our mobile app, providing seamless real-time data transmission."
     },
     "coreFeatures": {
       "title": "Core Features",
       "items": [
         "Real-time health monitoring",
-        "AI-powered health assistant",
+        "AI-powered health assistant", 
         "Personalized medication reminders",
         "Predictive health models",
         "Text-to-speech accessibility",
@@ -104,24 +127,53 @@
     },
     "academicContext": {
       "title": "Academic Context",
-      "description": "Senior graduation project at King Salman International University, Software Engineering Department."
+      "description": "This is a Senior Graduation Project at King Salman International University, Software Engineering Department. Our academic advisors provide crucial guidance and oversight to ensure the project meets the highest standards."
     },
     "mission": {
       "title": "Mission Statement",
       "description": "To empower patients to manage chronic conditions through real-time data and AI insights."
     },
     "team": {
-      "title": "Meet the Team"
+      "title": "Meet the Team",
+      "members": {
+        "bavly": {
+          "name": "Bavly Hamdy",
+          "role": "Team Leader – Full-Stack & AI",
+          "description": "Oversees full-stack integration, AI model coordination, and overall project architecture."
+        },
+        "yahia": {
+          "name": "Yahia Mohamed", 
+          "role": "AI & Backend Specialist",
+          "description": "Designs AI pipelines, integrates Gemini API, and manages backend data flows."
+        },
+        "eyad": {
+          "name": "Eyad Mahmoud",
+          "role": "Database & Firebase Engineer",
+          "description": "Implements Firestore schema, Realtime Database listeners, and analytics."
+        }
+      },
+      "advisors": {
+        "title": "Academic Advisors",
+        "wael": {
+          "name": "Dr. Wael Fawaz",
+          "description": "Provided guidance on hardware design and regulatory considerations."
+        },
+        "mohamed": {
+          "name": "Dr. Mohamed Badawi", 
+          "description": "Oversaw AI model validation and research methodology."
+        }
+      }
     },
     "techStack": {
       "title": "Technology Stack"
     }
   },
   "contact": {
-    "title": "Contact Us",
+    "title": "Contact Support",
+    "subtitle": "Have questions? We're here to help. Send us a message, and we'll respond via email.",
     "info": {
-      "email": "support@carecompanion.com",
-      "phone": "+20-123-456-7890",
+      "email": "Bavly.morgan2030@gmail.com",
+      "phone": "+20 111 183 5471",
       "office": "Software Engineering Department, King Salman International University"
     },
     "form": {
@@ -130,14 +182,14 @@
       "subject": "Subject",
       "message": "Message",
       "submit": "Send Message",
-      "success": "Thank you! We've received your message.",
+      "success": "Your email client has opened. Send the message to contact us.",
       "error": "Submission failed. Please try again."
     }
   },
   "auth": {
     "signup": {
-      "title": "Create an Account",
-      "subtitle": "Secure your health insights with personalized access.",
+      "title": "Sign Up for CareCompanion",
+      "subtitle": "Create an account to start monitoring your health.",
       "firstName": "First Name",
       "lastName": "Last Name",
       "email": "Email",
@@ -146,16 +198,19 @@
       "confirmPassword": "Confirm Password",
       "getOTP": "Get OTP",
       "completeRegistration": "Complete Registration",
-      "welcome": "Welcome, {{name}}! Your account has been created."
+      "welcome": "Welcome, {{name}}! Your account has been created.",
+      "emailOTP": "Email OTP",
+      "smsOTP": "SMS OTP",
+      "resendOTP": "Resend OTP"
     },
     "login": {
-      "title": "Log In to Your Account",
-      "subtitle": "Access your health dashboard and AI assistant.",
+      "title": "Log In",
+      "subtitle": "Access your CareCompanion account.",
       "emailOrPhone": "Email or Phone Number",
       "password": "Password",
       "forgotPassword": "Forgot Password?",
       "submit": "Log In",
-      "welcomeBack": "Welcome back, {{name}}!",
+      "welcomeBack": "Successfully logged in!",
       "invalidCredentials": "Invalid credentials. Please try again."
     },
     "otp": {
@@ -214,12 +269,24 @@
     }
   },
   "chatbot": {
-    "title": "Health Assistant",
-    "placeholder": "Type your message…",
+    "title": "Medical AI Chat Assistant",
+    "subtitle": "Powered by Gemini to answer your health questions in real time.",
+    "placeholder": "Ask me a medical question…",
     "thinking": "AI is thinking…",
+    "deepThinking": "Deep Thinking…",
+    "enableDeepThink": "Enable Deep Think",
     "clearChat": "Clear Chat",
     "confirmClear": "Are you sure you want to clear this chat?",
-    "chatCleared": "Chat cleared."
+    "chatCleared": "Chat cleared.",
+    "medicalOnly": "I am configured to discuss medical and health-related topics only. How can I assist you with your health today?",
+    "rateLimit": "You're sending messages too quickly. Please wait a moment.",
+    "voiceRecording": "Recording started",
+    "voiceComplete": "Transcription complete",
+    "editMessage": "Edit message",
+    "saveEdit": "Save",
+    "cancelEdit": "Cancel",
+    "playAudio": "Play audio",
+    "stopAudio": "Stop audio"
   },
   "common": {
     "loading": "Loading...",

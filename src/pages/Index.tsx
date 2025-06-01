@@ -26,7 +26,7 @@ import {
 
 const Index = () => {
   const { t } = useI18n();
-  const { theme, fontSize, setFontSize, colorScheme, setColorScheme } = useTheme();
+  const { theme } = useTheme();
   const { scrollY } = useScroll();
   const [email, setEmail] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -34,6 +34,7 @@ const Index = () => {
   // Demo Controls State
   const [demoFontSize, setDemoFontSize] = useState(16);
   const [demoAccentColor, setDemoAccentColor] = useState('#06B6D4');
+  const [showDemo, setShowDemo] = useState(true);
 
   // Load saved preferences
   useEffect(() => {
@@ -52,6 +53,25 @@ const Index = () => {
   useEffect(() => {
     localStorage.setItem('demoAccentColor', demoAccentColor);
   }, [demoAccentColor]);
+
+  // Enhanced scroll handler for demo visibility
+  useEffect(() => {
+    const handleScroll = () => {
+      const scrollPosition = window.scrollY;
+      const windowHeight = window.innerHeight;
+      const featuresSection = document.getElementById('features-section');
+      
+      if (featuresSection) {
+        const featuresSectionTop = featuresSection.offsetTop;
+        // Hide demo only when features section is significantly past the bottom of viewport
+        const hideThreshold = featuresSectionTop + windowHeight * 0.5;
+        setShowDemo(scrollPosition < hideThreshold);
+      }
+    };
+
+    window.addEventListener('scroll', handleScroll);
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, []);
 
   // Parallax effects
   const heroY = useTransform(scrollY, [0, 500], [0, 150]);
@@ -245,8 +265,11 @@ const Index = () => {
 
             {/* Interactive Demo Section */}
             <motion.div
-              className="glass-card-elevated p-8 rounded-3xl max-w-6xl mx-auto"
+              className={`glass-card-elevated p-8 rounded-3xl max-w-6xl mx-auto transition-all duration-500 ${
+                showDemo ? 'opacity-100 transform translate-y-0' : 'opacity-0 transform translate-y-10'
+              }`}
               variants={itemVariants}
+              style={{ display: showDemo ? 'block' : 'none' }}
             >
               <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 items-center">
                 {/* Phone Mockup */}
@@ -285,56 +308,6 @@ const Index = () => {
                       />
                     </div>
                   </div>
-
-                  {/* Global Customization Panel */}
-                  <div className="glass-card p-6 rounded-2xl">
-                    <h4 className="font-semibold mb-4">Global Preferences</h4>
-                    <div className="grid grid-cols-2 gap-6">
-                      {/* Font Size Control */}
-                      <div>
-                        <label className="block text-sm font-medium mb-2">
-                          {t('hero.customization.fontSize')}
-                        </label>
-                        <div className="space-y-2">
-                          {(['small', 'medium', 'large'] as const).map((size) => (
-                            <button
-                              key={size}
-                              onClick={() => setFontSize(size)}
-                              className={`w-full p-2 rounded-lg text-sm transition-all ${
-                                fontSize === size
-                                  ? 'bg-health-primary text-white'
-                                  : 'glass-card hover:bg-white/20 dark:hover:bg-black/30'
-                              }`}
-                            >
-                              {t(`hero.customization.${size}`)}
-                            </button>
-                          ))}
-                        </div>
-                      </div>
-
-                      {/* Color Scheme Control */}
-                      <div>
-                        <label className="block text-sm font-medium mb-2">
-                          {t('hero.customization.colorScheme')}
-                        </label>
-                        <div className="space-y-2">
-                          {(['default', 'highContrast', 'custom'] as const).map((scheme) => (
-                            <button
-                              key={scheme}
-                              onClick={() => setColorScheme(scheme)}
-                              className={`w-full p-2 rounded-lg text-sm transition-all ${
-                                colorScheme === scheme
-                                  ? 'bg-health-primary text-white'
-                                  : 'glass-card hover:bg-white/20 dark:hover:bg-black/30'
-                              }`}
-                            >
-                              {t(`hero.customization.${scheme}`)}
-                            </button>
-                          ))}
-                        </div>
-                      </div>
-                    </div>
-                  </div>
                 </div>
               </div>
             </motion.div>
@@ -352,7 +325,7 @@ const Index = () => {
       </section>
 
       {/* Features Section */}
-      <section className="section-padding bg-card/50">
+      <section id="features-section" className="section-padding bg-card/50">
         <motion.div
           className="container-custom"
           variants={containerVariants}
