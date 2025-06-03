@@ -1,3 +1,4 @@
+
 import React, { useState, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useI18n } from '@/contexts/I18nContext';
@@ -90,13 +91,6 @@ const Chatbot = () => {
     }
   }, [language]);
 
-  // Scroll to bottom when new messages arrive (not on initial load)
-  useEffect(() => {
-    if (messages.length > 1) {
-      messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-    }
-  }, [messages]);
-
   const isNonMedicalQuery = (query: string): boolean => {
     const nonMedicalKeywords = [
       'joke', 'funny', 'weather', 'news', 'politics', 'sports', 'movie', 'music',
@@ -113,7 +107,7 @@ const Chatbot = () => {
   };
 
   const callGeminiAPI = async (query: string, isDeepThink: boolean): Promise<string> => {
-    const apiKey = import.meta.env.VITE_API_KEY || process.env.REACT_APP_API_KEY;
+    const apiKey = process.env.REACT_APP_API_KEY;
     
     console.log("API Key Check:", apiKey ? "Found" : "Missing");
     
@@ -131,26 +125,21 @@ const Chatbot = () => {
     }
 
     try {
-      const response = await fetch('https://api.openai.com/v1/chat/completions', {
+      const response = await fetch('https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent?key=' + apiKey, {
         method: 'POST',
         headers: {
-          'Authorization': `Bearer ${apiKey}`,
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          model: 'gpt-3.5-turbo',
-          messages: [
-            {
-              role: 'system',
-              content: `You are a medical AI assistant. ${isDeepThink ? 'Provide detailed, comprehensive analysis.' : 'Provide concise, helpful responses.'} Respond in ${language === 'ar' ? 'Arabic' : 'English'}.`
-            },
-            {
-              role: 'user',
-              content: query
-            }
-          ],
-          temperature: 0.7,
-          max_tokens: isDeepThink ? 1000 : 500
+          contents: [{
+            parts: [{
+              text: `You are a medical AI assistant. ${isDeepThink ? 'Provide detailed, comprehensive analysis.' : 'Provide concise, helpful responses.'} Respond in ${language === 'ar' ? 'Arabic' : 'English'}. User query: ${query}`
+            }]
+          }],
+          generationConfig: {
+            temperature: 0.7,
+            maxOutputTokens: isDeepThink ? 1000 : 500
+          }
         })
       });
 
@@ -161,7 +150,7 @@ const Chatbot = () => {
       }
 
       const data = await response.json();
-      return data.choices[0].message.content;
+      return data.candidates[0].content.parts[0].text;
     } catch (error) {
       console.error("Gemini API Error:", error);
       throw error;

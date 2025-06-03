@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { motion, useScroll, useTransform } from 'framer-motion';
 import { useI18n } from '@/contexts/I18nContext';
@@ -52,9 +53,9 @@ const Index = () => {
     localStorage.setItem('demoAccentColor', demoAccentColor);
   }, [demoAccentColor]);
 
-  // Parallax effects
-  const heroY = useTransform(scrollY, [0, 500], [0, 150]);
-  const heroOpacity = useTransform(scrollY, [0, 300], [1, 0]);
+  // REMOVED: Parallax effects that were hiding the Interactive Demo
+  // const heroY = useTransform(scrollY, [0, 500], [0, 150]);
+  // const heroOpacity = useTransform(scrollY, [0, 300], [1, 0]);
 
   const features = [
     {
@@ -173,10 +174,7 @@ const Index = () => {
           />
         </div>
 
-        <motion.div
-          className="container-custom relative z-10"
-          style={{ y: heroY, opacity: heroOpacity }}
-        >
+        <div className="container-custom relative z-10">
           <motion.div
             className="text-center max-w-4xl mx-auto"
             variants={containerVariants}
@@ -242,7 +240,7 @@ const Index = () => {
               </Button>
             </motion.div>
 
-            {/* Interactive Demo Section - Always Visible */}
+            {/* Interactive Demo Section - Always Visible (removed parallax effects) */}
             <motion.div
               className="glass-card-elevated p-8 rounded-3xl max-w-6xl mx-auto"
               variants={itemVariants}
@@ -288,7 +286,7 @@ const Index = () => {
               </div>
             </motion.div>
           </motion.div>
-        </motion.div>
+        </div>
 
         {/* Scroll Indicator */}
         <motion.div
