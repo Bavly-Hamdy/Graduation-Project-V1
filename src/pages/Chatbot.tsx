@@ -1,3 +1,4 @@
+
 import React, { useState, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useI18n } from '@/contexts/I18nContext';
@@ -123,7 +124,13 @@ const Chatbot = () => {
     }
 
     try {
-      const response = await fetch('https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent?key=' + apiKey, {
+      // Use the correct Gemini API endpoint and model
+      const modelName = 'gemini-1.5-flash';
+      const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/${modelName}:generateContent?key=${apiKey}`;
+      
+      const systemPrompt = `You are a certified medical assistant. ${isDeepThink ? 'Provide detailed, comprehensive analysis.' : 'Provide concise, helpful responses.'} Respond in ${language === 'ar' ? 'Arabic' : 'English'}. Always provide factual, reliable medical information.`;
+
+      const response = await fetch(endpoint, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -131,12 +138,14 @@ const Chatbot = () => {
         body: JSON.stringify({
           contents: [{
             parts: [{
-              text: `You are a medical AI assistant. ${isDeepThink ? 'Provide detailed, comprehensive analysis.' : 'Provide concise, helpful responses.'} Respond in ${language === 'ar' ? 'Arabic' : 'English'}. User query: ${query}`
+              text: `${systemPrompt}\n\nUser query: ${query}`
             }]
           }],
           generationConfig: {
-            temperature: 0.7,
-            maxOutputTokens: isDeepThink ? 1000 : 500
+            temperature: isDeepThink ? 0.7 : 0.5,
+            maxOutputTokens: isDeepThink ? 1000 : 500,
+            topP: 0.8,
+            topK: 40
           }
         })
       });
@@ -151,6 +160,8 @@ const Chatbot = () => {
           throw new Error("Invalid Gemini API key. Contact support.");
         } else if (response.status === 429) {
           throw new Error("Rate limit exceeded. Please wait and try again.");
+        } else if (response.status === 404) {
+          throw new Error("Model not found. Please contact support.");
         } else {
           throw new Error(`API Error: ${response.status} - ${errorData.error?.message || 'Unknown error'}`);
         }
