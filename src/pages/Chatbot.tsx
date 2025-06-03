@@ -38,27 +38,10 @@ const Chatbot = () => {
   const { theme } = useTheme();
   const { toast } = useToast();
   
-  // Check API key on component mount
-  const apiKey = import.meta.env.VITE_API_KEY;
+  // Use the provided Gemini API key directly
+  const apiKey = "AIzaSyAWKPfeepjAlHToguhq-n1Ai--XtvG5K44";
   console.log("Gemini API Key Check:", apiKey ? "Found" : "Missing");
   console.log("API Key value:", apiKey);
-  
-  // Early return if no API key
-  if (!apiKey) {
-    console.error("Gemini API key is missing");
-    return (
-      <MainLayout>
-        <div className="container-custom max-w-4xl mx-auto pt-8 pb-4 h-screen flex items-center justify-center">
-          <div className="text-center">
-            <h2 className="text-2xl font-bold text-destructive mb-4">Configuration Error</h2>
-            <p className="text-muted-foreground">
-              Gemini API key is missing. Please contact support.
-            </p>
-          </div>
-        </div>
-      </MainLayout>
-    );
-  }
 
   const [messages, setMessages] = useState<Message[]>([
     {
@@ -70,6 +53,7 @@ const Chatbot = () => {
       timestamp: new Date()
     }
   ]);
+
   const [inputValue, setInputValue] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [isDeepThink, setIsDeepThink] = useState(false);
