@@ -1,4 +1,3 @@
-
 import React, { useState, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useI18n } from '@/contexts/I18nContext';
@@ -319,6 +318,13 @@ const Chatbot = () => {
         : "تم مسح تاريخ المحادثة."
     });
   };
+
+  // Scroll to bottom when new messages arrive (not on initial load)
+  useEffect(() => {
+    if (messages.length > 1) {
+      messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+    }
+  }, [messages]);
 
   return (
     <MainLayout>
