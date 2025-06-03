@@ -1,4 +1,3 @@
-
 import React, { useState, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useI18n } from '@/contexts/I18nContext';
@@ -38,6 +37,29 @@ const Chatbot = () => {
   const { t, language } = useI18n();
   const { theme } = useTheme();
   const { toast } = useToast();
+  
+  // Check API key on component mount
+  const apiKey = import.meta.env.VITE_API_KEY;
+  console.log("Gemini API Key Check:", apiKey ? "Found" : "Missing");
+  console.log("API Key value:", apiKey);
+  
+  // Early return if no API key
+  if (!apiKey) {
+    console.error("Gemini API key is missing");
+    return (
+      <MainLayout>
+        <div className="container-custom max-w-4xl mx-auto pt-8 pb-4 h-screen flex items-center justify-center">
+          <div className="text-center">
+            <h2 className="text-2xl font-bold text-destructive mb-4">Configuration Error</h2>
+            <p className="text-muted-foreground">
+              Gemini API key is missing. Please contact support.
+            </p>
+          </div>
+        </div>
+      </MainLayout>
+    );
+  }
+
   const [messages, setMessages] = useState<Message[]>([
     {
       id: '1',
@@ -107,16 +129,8 @@ const Chatbot = () => {
   };
 
   const callGeminiAPI = async (query: string, isDeepThink: boolean): Promise<string> => {
-    const apiKey = process.env.REACT_APP_API_KEY;
-    
-    console.log("API Key Check:", apiKey ? "Found" : "Missing");
-    
-    if (!apiKey) {
-      console.error("API key missing:", apiKey);
-      throw new Error("Configuration Error: API key is missing. Contact support.");
-    }
-
-    console.log("Sending message:", query);
+    console.log("callGeminiAPI called with:", query);
+    console.log("Using API Key:", apiKey);
 
     if (isNonMedicalQuery(query)) {
       return language === 'en' 
@@ -143,13 +157,28 @@ const Chatbot = () => {
         })
       });
 
+      console.log("API Response status:", response.status);
+
       if (!response.ok) {
         const errorData = await response.json();
-        console.error("API Error:", errorData);
-        throw new Error(`API Error: ${response.status} - ${errorData.error?.message || 'Unknown error'}`);
+        console.error("API Error Details:", errorData);
+        
+        if (response.status === 401) {
+          throw new Error("Invalid Gemini API key. Contact support.");
+        } else if (response.status === 429) {
+          throw new Error("Rate limit exceeded. Please wait and try again.");
+        } else {
+          throw new Error(`API Error: ${response.status} - ${errorData.error?.message || 'Unknown error'}`);
+        }
       }
 
       const data = await response.json();
+      console.log("API Response data:", data);
+
+      if (!data.candidates || !data.candidates[0] || !data.candidates[0].content) {
+        throw new Error("Invalid response format from Gemini API");
+      }
+
       return data.candidates[0].content.parts[0].text;
     } catch (error) {
       console.error("Gemini API Error:", error);
@@ -158,9 +187,12 @@ const Chatbot = () => {
   };
 
   const sendOrUpdateMessage = async () => {
-    if (!inputValue.trim() || isLoading || isRateLimited) return;
+    if (!inputValue.trim() || isLoading || isRateLimited) {
+      console.warn("Cannot send message:", { empty: !inputValue.trim(), loading: isLoading, rateLimited: isRateLimited });
+      return;
+    }
 
-    console.log("Sending message:", inputValue);
+    console.log("sendOrUpdateMessage called with:", inputValue);
 
     // Rate limiting check
     if (rateLimitCount >= 5) {
@@ -217,6 +249,11 @@ const Chatbot = () => {
 
       setMessages(prev => [...prev, botMessage]);
 
+      // Scroll to bottom after new message
+      setTimeout(() => {
+        messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+      }, 100);
+
       // Save to Firebase
       try {
         const chatRef = ref(realTimeDb, 'chats/demo');
@@ -232,11 +269,12 @@ const Chatbot = () => {
 
     } catch (error) {
       setMessages(prev => prev.filter(msg => msg.id !== 'typing'));
+      
+      const errorMessage = error instanceof Error ? error.message : "Failed to get response. Please try again.";
+      
       toast({
         title: language === 'en' ? "Error" : "خطأ",
-        description: language === 'en' 
-          ? "Failed to get response. Please try again."
-          : "فشل في الحصول على رد. يرجى المحاولة مرة أخرى.",
+        description: errorMessage,
         variant: "destructive"
       });
     } finally {
