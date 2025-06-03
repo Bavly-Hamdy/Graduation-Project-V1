@@ -7,6 +7,7 @@ import MainLayout from '@/components/layout/MainLayout';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { useToast } from '@/hooks/use-toast';
+import { realTimeDb, ref, push, onValue } from '@/config/firebaseConfig';
 import { 
   Send, 
   Paperclip, 
@@ -17,7 +18,9 @@ import {
   Trash2,
   Bot,
   User,
-  Stethoscope
+  Stethoscope,
+  Volume2,
+  VolumeX
 } from 'lucide-react';
 
 interface Message {
@@ -57,10 +60,6 @@ const Chatbot = () => {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const recognition = useRef<SpeechRecognition | null>(null);
 
-  useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-  }, [messages]);
-
   // Rate limiting reset
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -92,6 +91,13 @@ const Chatbot = () => {
     }
   }, [language]);
 
+  // Scroll to bottom when new messages arrive (not on initial load)
+  useEffect(() => {
+    if (messages.length > 1) {
+      messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+    }
+  }, [messages]);
+
   const isNonMedicalQuery = (query: string): boolean => {
     const nonMedicalKeywords = [
       'joke', 'funny', 'weather', 'news', 'politics', 'sports', 'movie', 'music',
@@ -107,9 +113,17 @@ const Chatbot = () => {
            arabicNonMedical.some(keyword => query.includes(keyword));
   };
 
-  const simulateGeminiAPI = async (query: string, isDeepThink: boolean, fileContent?: string): Promise<string> => {
-    // Simulate API delay
-    await new Promise(resolve => setTimeout(resolve, isDeepThink ? 3000 : 1500));
+  const callGeminiAPI = async (query: string, isDeepThink: boolean): Promise<string> => {
+    const apiKey = import.meta.env.VITE_API_KEY || process.env.REACT_APP_API_KEY;
+    
+    console.log("API Key Check:", apiKey ? "Found" : "Missing");
+    
+    if (!apiKey) {
+      console.error("API key missing:", apiKey);
+      throw new Error("Configuration Error: API key is missing. Contact support.");
+    }
+
+    console.log("Sending message:", query);
 
     if (isNonMedicalQuery(query)) {
       return language === 'en' 
@@ -117,27 +131,48 @@ const Chatbot = () => {
         : "أنا مخصص لمناقشة المواضيع الطبية والصحية فقط. كيف يمكنني مساعدتك في صحتك اليوم؟";
     }
 
-    // Simulate medical responses based on query content
-    if (query.toLowerCase().includes('headache') || query.includes('صداع')) {
-      return language === 'en'
-        ? `${isDeepThink ? 'After deep analysis: ' : ''}Headaches can have various causes including tension, dehydration, stress, or underlying medical conditions. Common triggers include lack of sleep, eye strain, and dietary factors. If headaches are frequent, severe, or accompanied by other symptoms like vision changes, fever, or neck stiffness, please consult a healthcare provider immediately. For immediate relief, ensure adequate hydration, rest in a quiet dark room, and consider over-the-counter pain relievers as directed.`
-        : `${isDeepThink ? 'بعد التحليل المتقدم: ' : ''}الصداع له أسباب مختلفة منها التوتر والجفاف والضغط النفسي أو حالات طبية كامنة. المحفزات الشائعة تشمل قلة النوم وإجهاد العينين والعوامل الغذائية. إذا كان الصداع متكرراً أو شديداً أو مصحوباً بأعراض أخرى مثل تغيرات الرؤية أو الحمى أو تصلب الرقبة، يرجى استشارة مقدم الرعاية الصحية فوراً.`;
-    }
+    try {
+      const response = await fetch('https://api.openai.com/v1/chat/completions', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${apiKey}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          model: 'gpt-3.5-turbo',
+          messages: [
+            {
+              role: 'system',
+              content: `You are a medical AI assistant. ${isDeepThink ? 'Provide detailed, comprehensive analysis.' : 'Provide concise, helpful responses.'} Respond in ${language === 'ar' ? 'Arabic' : 'English'}.`
+            },
+            {
+              role: 'user',
+              content: query
+            }
+          ],
+          temperature: 0.7,
+          max_tokens: isDeepThink ? 1000 : 500
+        })
+      });
 
-    if (query.toLowerCase().includes('blood pressure') || query.includes('ضغط الدم')) {
-      return language === 'en'
-        ? `${isDeepThink ? 'Comprehensive analysis: ' : ''}Blood pressure is the force of blood against artery walls. Normal blood pressure is typically below 120/80 mmHg. High blood pressure (hypertension) above 140/90 mmHg can lead to serious complications including heart disease, stroke, and kidney problems. Lifestyle modifications include regular exercise, reducing sodium intake, maintaining healthy weight, limiting alcohol, and managing stress. Regular monitoring is essential, especially if you have risk factors like family history, diabetes, or obesity.`
-        : `${isDeepThink ? 'تحليل شامل: ' : ''}ضغط الدم هو قوة الدم ضد جدران الشرايين. ضغط الدم الطبيعي عادة أقل من 120/80 ملم زئبق. ارتفاع ضغط الدم فوق 140/90 يمكن أن يؤدي إلى مضاعفات خطيرة منها أمراض القلب والسكتة الدماغية ومشاكل الكلى. التعديلات في نمط الحياة تشمل التمرين المنتظم وتقليل الصوديوم والحفاظ على وزن صحي.`;
-    }
+      if (!response.ok) {
+        const errorData = await response.json();
+        console.error("API Error:", errorData);
+        throw new Error(`API Error: ${response.status} - ${errorData.error?.message || 'Unknown error'}`);
+      }
 
-    // Default medical response
-    return language === 'en'
-      ? `${isDeepThink ? 'After thorough analysis: ' : ''}Thank you for your health question. Based on your inquiry, I recommend consulting with a healthcare professional for proper diagnosis and treatment. In the meantime, maintain a healthy lifestyle with regular exercise, balanced nutrition, adequate sleep, and stress management. If you're experiencing severe symptoms, seek immediate medical attention.`
-      : `${isDeepThink ? 'بعد التحليل الشامل: ' : ''}شكراً لسؤالك الصحي. بناءً على استفسارك، أنصح بالتشاور مع أخصائي رعاية صحية للتشخيص والعلاج المناسب. في هذه الأثناء، حافظ على نمط حياة صحي مع التمرين المنتظم والتغذية المتوازنة والنوم الكافي وإدارة التوتر.`;
+      const data = await response.json();
+      return data.choices[0].message.content;
+    } catch (error) {
+      console.error("Gemini API Error:", error);
+      throw error;
+    }
   };
 
-  const handleSendMessage = async () => {
+  const sendOrUpdateMessage = async () => {
     if (!inputValue.trim() || isLoading || isRateLimited) return;
+
+    console.log("Sending message:", inputValue);
 
     // Rate limiting check
     if (rateLimitCount >= 5) {
@@ -179,7 +214,7 @@ const Chatbot = () => {
     setMessages(prev => [...prev, typingMessage]);
 
     try {
-      const response = await simulateGeminiAPI(userMessage.content, isDeepThink, uploadedFile?.name);
+      const response = await callGeminiAPI(userMessage.content, isDeepThink);
       
       // Remove typing indicator and add real response
       setMessages(prev => prev.filter(msg => msg.id !== 'typing'));
@@ -193,6 +228,20 @@ const Chatbot = () => {
       };
 
       setMessages(prev => [...prev, botMessage]);
+
+      // Save to Firebase
+      try {
+        const chatRef = ref(realTimeDb, 'chats/demo');
+        await push(chatRef, {
+          userMessage: userMessage.content,
+          botResponse: response,
+          timestamp: Date.now(),
+          isDeepThink
+        });
+      } catch (firebaseError) {
+        console.error("Firebase Error:", firebaseError);
+      }
+
     } catch (error) {
       setMessages(prev => prev.filter(msg => msg.id !== 'typing'));
       toast({
@@ -246,6 +295,14 @@ const Chatbot = () => {
     }
   };
 
+  const speakMessage = (text: string) => {
+    if ('speechSynthesis' in window) {
+      const utterance = new SpeechSynthesisUtterance(text);
+      utterance.lang = language === 'ar' ? 'ar-SA' : 'en-US';
+      speechSynthesis.speak(utterance);
+    }
+  };
+
   const clearChat = () => {
     setMessages([{
       id: '1',
@@ -278,8 +335,8 @@ const Chatbot = () => {
           </h1>
           <p className="text-muted-foreground">
             {language === 'en' 
-              ? "Powered by Gemini to answer your health questions in real time."
-              : "مدعوم من Gemini للرد على أسئلتك الصحية في الوقت الفعلي."}
+              ? "Powered by AI to answer your health questions in real time."
+              : "مدعوم بالذكاء الاصطناعي للرد على أسئلتك الصحية في الوقت الفعلي."}
           </p>
           <Button
             variant="ghost"
@@ -319,14 +376,22 @@ const Chatbot = () => {
                   >
                     {/* Bot message header */}
                     {message.type === 'bot' && (
-                      <div className="flex items-center mb-2">
-                        <div className="w-6 h-6 bg-health-primary/10 rounded-full flex items-center justify-center mr-2">
-                          <Stethoscope className="w-3 h-3 text-health-primary" />
+                      <div className="flex items-center justify-between mb-2">
+                        <div className="flex items-center">
+                          <div className="w-6 h-6 bg-health-primary/10 rounded-full flex items-center justify-center mr-2">
+                            <Stethoscope className="w-3 h-3 text-health-primary" />
+                          </div>
+                          <span className="text-xs text-muted-foreground">
+                            Medical AI
+                            {message.isDeepThink && ' • Deep Think'}
+                          </span>
                         </div>
-                        <span className="text-xs text-muted-foreground">
-                          Medical AI
-                          {message.isDeepThink && ' • Deep Think'}
-                        </span>
+                        <button
+                          onClick={() => speakMessage(message.content)}
+                          className="text-muted-foreground hover:text-health-primary transition-colors"
+                        >
+                          <Volume2 className="w-4 h-4" />
+                        </button>
                       </div>
                     )}
 
@@ -439,7 +504,7 @@ const Chatbot = () => {
                 onKeyPress={(e) => {
                   if (e.key === 'Enter' && !e.shiftKey) {
                     e.preventDefault();
-                    handleSendMessage();
+                    sendOrUpdateMessage();
                   }
                 }}
                 disabled={isLoading || isRateLimited}
@@ -472,7 +537,8 @@ const Chatbot = () => {
 
               {/* Send Button */}
               <Button
-                onClick={handleSendMessage}
+                type="button"
+                onClick={sendOrUpdateMessage}
                 disabled={!inputValue.trim() || isLoading || isRateLimited}
                 className="btn-primary p-2"
               >

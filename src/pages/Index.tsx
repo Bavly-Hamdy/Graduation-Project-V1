@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { motion, useScroll, useTransform } from 'framer-motion';
 import { useI18n } from '@/contexts/I18nContext';
@@ -34,7 +33,6 @@ const Index = () => {
   // Demo Controls State
   const [demoFontSize, setDemoFontSize] = useState(16);
   const [demoAccentColor, setDemoAccentColor] = useState('#06B6D4');
-  const [showDemo, setShowDemo] = useState(true);
 
   // Load saved preferences
   useEffect(() => {
@@ -53,25 +51,6 @@ const Index = () => {
   useEffect(() => {
     localStorage.setItem('demoAccentColor', demoAccentColor);
   }, [demoAccentColor]);
-
-  // Enhanced scroll handler for demo visibility
-  useEffect(() => {
-    const handleScroll = () => {
-      const scrollPosition = window.scrollY;
-      const windowHeight = window.innerHeight;
-      const featuresSection = document.getElementById('features-section');
-      
-      if (featuresSection) {
-        const featuresSectionTop = featuresSection.offsetTop;
-        // Hide demo only when features section is significantly past the bottom of viewport
-        const hideThreshold = featuresSectionTop + windowHeight * 0.5;
-        setShowDemo(scrollPosition < hideThreshold);
-      }
-    };
-
-    window.addEventListener('scroll', handleScroll);
-    return () => window.removeEventListener('scroll', handleScroll);
-  }, []);
 
   // Parallax effects
   const heroY = useTransform(scrollY, [0, 500], [0, 150]);
@@ -263,13 +242,10 @@ const Index = () => {
               </Button>
             </motion.div>
 
-            {/* Interactive Demo Section */}
+            {/* Interactive Demo Section - Always Visible */}
             <motion.div
-              className={`glass-card-elevated p-8 rounded-3xl max-w-6xl mx-auto transition-all duration-500 ${
-                showDemo ? 'opacity-100 transform translate-y-0' : 'opacity-0 transform translate-y-10'
-              }`}
+              className="glass-card-elevated p-8 rounded-3xl max-w-6xl mx-auto"
               variants={itemVariants}
-              style={{ display: showDemo ? 'block' : 'none' }}
             >
               <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 items-center">
                 {/* Phone Mockup */}

@@ -3,7 +3,7 @@ import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useTheme } from '@/contexts/ThemeContext';
 import { useI18n } from '@/contexts/I18nContext';
-import { Menu, X, Sun, Moon, Globe, ChevronDown, User } from 'lucide-react';
+import { Menu, X, Sun, Moon, Globe, ChevronDown } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
 const Header = () => {
@@ -127,16 +127,6 @@ const Header = () => {
               </span>
             </motion.button>
 
-            {/* Auth Buttons - Desktop */}
-            <div className="hidden md:flex items-center space-x-3 rtl:space-x-reverse">
-              <Button variant="ghost" className="btn-ghost">
-                {t('navigation.login')}
-              </Button>
-              <Button className="btn-primary">
-                {t('navigation.signup')}
-              </Button>
-            </div>
-
             {/* Mobile Menu Toggle */}
             <motion.button
               onClick={() => setIsMenuOpen(!isMenuOpen)}
@@ -188,15 +178,6 @@ const Header = () => {
                     {t(`navigation.${link.key}`)}
                   </motion.a>
                 ))}
-                
-                <div className="flex flex-col space-y-3 pt-4 border-t border-white/10">
-                  <Button variant="ghost" className="btn-ghost justify-start">
-                    {t('navigation.login')}
-                  </Button>
-                  <Button className="btn-primary justify-start">
-                    {t('navigation.signup')}
-                  </Button>
-                </div>
               </nav>
             </div>
           </motion.div>
