@@ -100,11 +100,12 @@ const Chatbot = () => {
   const isNonMedicalQuery = (query: string): boolean => {
     const nonMedicalKeywords = [
       'joke', 'funny', 'weather', 'news', 'politics', 'sports', 'movie', 'music',
-      'recipe', 'cooking', 'travel', 'shopping', 'entertainment', 'games'
+      'recipe', 'cooking', 'travel', 'shopping', 'entertainment', 'games', 'google',
+      'account', 'password', 'login', 'computer', 'software', 'programming'
     ];
     const arabicNonMedical = [
       'نكتة', 'مضحك', 'طقس', 'أخبار', 'سياسة', 'رياضة', 'فيلم', 'موسيقى',
-      'وصفة', 'طبخ', 'سفر', 'تسوق', 'ترفيه', 'ألعاب'
+      'وصفة', 'طبخ', 'سفر', 'تسوق', 'ترفيه', 'ألعاب', 'جوجل', 'حساب', 'كلمة سر'
     ];
     
     const lowercaseQuery = query.toLowerCase();
@@ -116,10 +117,9 @@ const Chatbot = () => {
     console.log("callGeminiAPI called with:", query);
     console.log("Using API Key:", apiKey);
 
+    // Domain restriction check
     if (isNonMedicalQuery(query)) {
-      return language === 'en' 
-        ? "I am configured to discuss medical and health-related topics only. How can I assist you with your health today?"
-        : "أنا مخصص لمناقشة المواضيع الطبية والصحية فقط. كيف يمكنني مساعدتك في صحتك اليوم؟";
+      return "I'm sorry, I can only provide medical and health-related information. Please ask a question about symptoms, conditions, treatments, or wellness.";
     }
 
     try {
@@ -127,45 +127,29 @@ const Chatbot = () => {
       const modelName = 'gemini-1.5-flash';
       const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/${modelName}:generateContent?key=${apiKey}`;
       
-      const systemPrompt = `You are a certified medical assistant chatbot. Follow these rules exactly:
+      const systemPrompt = `You are a certified medical AI assistant. Follow these rules exactly:
 
-1. **Language & Dialect Matching:**
-   - If the user's input is in Arabic (including Egyptian, Gulf, Levantine, or any other dialect), respond entirely in the same Arabic dialect and style.
-   - If the user's input is in English, respond entirely in English.
-   - If the user mixes languages, respond in the dominant language detected.
-   - Match the formality level: if user uses colloquial expressions, respond colloquially but professionally.
+1. **Domain Restriction:** Answer only medical and health questions.
 
-2. **Professional Markdown Formatting (REQUIRED):**
-   - Always use Markdown formatting in your responses.
-   - Start with a bold heading summarizing your answer (e.g., **نظرة عامة** or **Overview**).
-   - Use bullet points (\`- \`) or numbered lists (\`1. \`) where appropriate.
-   - Use bold (\`**\`) to highlight key medical terms, symptoms, or important points.
-   - Keep paragraphs short and well-structured.
-   - Example structure:
-     \`\`\`
-     **Main Topic**
-     Brief introduction paragraph.
-     
-     **Key Points:**
-     - First important point
-     - Second important point
-     - **Critical information** in bold
-     
-     **Recommendations:**
-     1. First recommendation
-     2. Second recommendation
-     \`\`\`
+2. **Language Detection:** 
+   - If user writes in Arabic (any dialect), respond entirely in Arabic matching their dialect/tone
+   - If user writes in English, respond entirely in English
+   - Never mix languages
 
-3. **Medical Guidelines:**
-   - Provide only factual, evidence-based medical information.
-   - ${isDeepThink ? 'Provide detailed, comprehensive analysis with thorough explanations.' : 'Provide concise, helpful responses focused on key information.'}
-   - Always recommend consulting healthcare professionals for serious concerns.
-   - Use clear, professional tone appropriate for medical guidance.
+3. **Response Format (REQUIRED):**
+   - Start with ONE bold heading summarizing your answer (e.g., **Overview** or **نظرة عامة**)
+   - Write 1-2 short paragraphs of explanation
+   - Include a bullet list (- ) or numbered list (1. ) when listing symptoms, steps, or recommendations
+   - Keep paragraphs short, separated by blank lines
+   - Do NOT use code blocks or backticks
+   - Use bold (**) only for the main heading and key medical terms
 
-4. **Response Requirements:**
-   - ${isDeepThink ? 'Aim for 4-6 well-structured paragraphs with detailed explanations.' : 'Aim for 2-4 concise paragraphs.'}
-   - Include at least one formatted list (bullet or numbered) when listing symptoms, steps, or recommendations.
-   - Avoid overly technical jargon—explain medical terms briefly when used.`;
+4. **Content Guidelines:**
+   - ${isDeepThink ? 'Provide detailed, comprehensive medical analysis' : 'Provide concise, focused medical information'}
+   - Use professional, empathetic medical tone
+   - Always end with: "*This information is for educational purposes and does not replace consulting a qualified healthcare professional.*"
+
+5. **Length:** ${isDeepThink ? '4-6 paragraphs with detailed explanations' : '2-3 concise paragraphs'}`;
 
       const response = await fetch(endpoint, {
         method: 'POST',
@@ -254,22 +238,26 @@ const Chatbot = () => {
     setIsLoading(true);
     setRateLimitCount(prev => prev + 1);
 
-    // Add typing indicator
-    const typingMessage: Message = {
-      id: 'typing',
-      type: 'bot',
-      content: language === 'en' ? 'AI is thinking...' : 'الذكاء الاصطناعي يفكر...',
-      timestamp: new Date(),
-      isTyping: true
-    };
+    // Only show typing indicator if Deep Think is enabled
+    if (isDeepThink) {
+      const typingMessage: Message = {
+        id: 'typing',
+        type: 'bot',
+        content: '💭 Chatbot is thinking...',
+        timestamp: new Date(),
+        isTyping: true
+      };
 
-    setMessages(prev => [...prev, typingMessage]);
+      setMessages(prev => [...prev, typingMessage]);
+    }
 
     try {
       const response = await callGeminiAPI(userMessage.content, isDeepThink);
       
-      // Remove typing indicator and add real response
-      setMessages(prev => prev.filter(msg => msg.id !== 'typing'));
+      // Remove typing indicator if it was shown
+      if (isDeepThink) {
+        setMessages(prev => prev.filter(msg => msg.id !== 'typing'));
+      }
       
       const botMessage: Message = {
         id: (Date.now() + 1).toString(),
@@ -300,7 +288,9 @@ const Chatbot = () => {
       }
 
     } catch (error) {
-      setMessages(prev => prev.filter(msg => msg.id !== 'typing'));
+      if (isDeepThink) {
+        setMessages(prev => prev.filter(msg => msg.id !== 'typing'));
+      }
       
       const errorMessage = error instanceof Error ? error.message : "Failed to get response. Please try again.";
       
