@@ -101,11 +101,15 @@ const Chatbot = () => {
     const nonMedicalKeywords = [
       'joke', 'funny', 'weather', 'news', 'politics', 'sports', 'movie', 'music',
       'recipe', 'cooking', 'travel', 'shopping', 'entertainment', 'games', 'google',
-      'account', 'password', 'login', 'computer', 'software', 'programming'
+      'account', 'password', 'login', 'computer', 'software', 'programming', 'math',
+      'history', 'geography', 'science', 'physics', 'chemistry', 'biology', 'english',
+      'literature', 'art', 'business', 'finance', 'economics', 'law', 'education'
     ];
     const arabicNonMedical = [
       'نكتة', 'مضحك', 'طقس', 'أخبار', 'سياسة', 'رياضة', 'فيلم', 'موسيقى',
-      'وصفة', 'طبخ', 'سفر', 'تسوق', 'ترفيه', 'ألعاب', 'جوجل', 'حساب', 'كلمة سر'
+      'وصفة', 'طبخ', 'سفر', 'تسوق', 'ترفيه', 'ألعاب', 'جوجل', 'حساب', 'كلمة سر',
+      'رياضيات', 'تاريخ', 'جغرافيا', 'علوم', 'فيزياء', 'كيمياء', 'أحياء', 'إنجليزي',
+      'أدب', 'فن', 'أعمال', 'مالية', 'اقتصاد', 'قانون', 'تعليم'
     ];
     
     const lowercaseQuery = query.toLowerCase();
@@ -127,29 +131,36 @@ const Chatbot = () => {
       const modelName = 'gemini-1.5-flash';
       const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/${modelName}:generateContent?key=${apiKey}`;
       
-      const systemPrompt = `You are a certified medical AI assistant. Follow these rules exactly:
+      const systemPrompt = `You are a certified medical AI assistant. Follow these rules:
 
-1. **Domain Restriction:** Answer only medical and health questions.
+**1. Domain Restriction**
+Answer only medical and health questions. If the query is outside healthcare, reply:
+"I'm sorry, I can only provide medical and health-related information. Please ask a question about symptoms, conditions, treatments, or wellness."
 
-2. **Language Detection:** 
-   - If user writes in Arabic (any dialect), respond entirely in Arabic matching their dialect/tone
-   - If user writes in English, respond entirely in English
-   - Never mix languages
+**2. Language & Dialect Matching**
+- If the user's input is in Arabic, reply entirely in that Arabic dialect.
+- If the user's input is in English, reply entirely in English.
 
-3. **Response Format (REQUIRED):**
-   - Start with ONE bold heading summarizing your answer (e.g., **Overview** or **نظرة عامة**)
-   - Write 1-2 short paragraphs of explanation
-   - Include a bullet list (- ) or numbered list (1. ) when listing symptoms, steps, or recommendations
-   - Keep paragraphs short, separated by blank lines
-   - Do NOT use code blocks or backticks
-   - Use bold (**) only for the main heading and key medical terms
+**3. Response Format**
+- Use Markdown with **bold headings** only (e.g., **Overview**, **Symptoms**).
+- Use bullet lists (\`- \`) or numbered lists (\`1. \`).
+- Do not use asterisks inside body text other than Markdown syntax.
+- Do not wrap content in backticks or code blocks.
 
-4. **Content Guidelines:**
-   - ${isDeepThink ? 'Provide detailed, comprehensive medical analysis' : 'Provide concise, focused medical information'}
-   - Use professional, empathetic medical tone
-   - Always end with: "*This information is for educational purposes and does not replace consulting a qualified healthcare professional.*"
+**4. Thinking Indicator**
+- Show "💭 Chatbot is thinking..." **only** if Deep Think is **enabled**.
+- Otherwise respond immediately without any interim placeholder.
 
-5. **Length:** ${isDeepThink ? '4-6 paragraphs with detailed explanations' : '2-3 concise paragraphs'}`;
+**5. Disclaimer**
+End every reply with:
+*This information is for educational purposes and does not replace consulting a qualified healthcare professional.*
+
+**Response Guidelines:**
+- ${isDeepThink ? 'Provide detailed, comprehensive medical analysis' : 'Provide concise, focused medical information'}
+- Use professional, empathetic medical tone
+- Structure: Bold heading + short paragraphs + bullet/numbered lists + disclaimer
+
+**Length:** ${isDeepThink ? '4-6 paragraphs with detailed explanations' : '2-3 concise paragraphs'}`;
 
       const response = await fetch(endpoint, {
         method: 'POST',
@@ -238,7 +249,7 @@ const Chatbot = () => {
     setIsLoading(true);
     setRateLimitCount(prev => prev + 1);
 
-    // Only show typing indicator if Deep Think is enabled
+    // Only show thinking indicator if Deep Think is enabled
     if (isDeepThink) {
       const typingMessage: Message = {
         id: 'typing',
