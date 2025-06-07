@@ -2,11 +2,13 @@ import React, { useState, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useI18n } from '@/contexts/I18nContext';
 import { useTheme } from '@/contexts/ThemeContext';
+import { useParams, useNavigate } from 'react-router-dom';
 import MainLayout from '@/components/layout/MainLayout';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { useToast } from '@/hooks/use-toast';
-import { realTimeDb, ref, push, onValue } from '@/config/firebaseConfig';
+import { realTimeDb, ref, push, onValue, set, remove } from '@/config/firebaseConfig';
+import MessageBubble from '@/components/chatbot/MessageBubble';
 import { 
   Send, 
   Paperclip, 
@@ -19,7 +21,9 @@ import {
   User,
   Stethoscope,
   Volume2,
-  VolumeX
+  VolumeX,
+  History,
+  Plus
 } from 'lucide-react';
 
 interface Message {
@@ -31,29 +35,22 @@ interface Message {
   fileName?: string;
   isDeepThink?: boolean;
   isTyping?: boolean;
+  isEditing?: boolean;
 }
 
 const Chatbot = () => {
+  const { sessionId } = useParams();
+  const navigate = useNavigate();
   const { t, language } = useI18n();
   const { theme } = useTheme();
   const { toast } = useToast();
   
   // Use the provided Gemini API key directly
   const apiKey = "AIzaSyAWKPfeepjAlHToguhq-n1Ai--XtvG5K44";
-  console.log("Gemini API Key Check:", apiKey ? "Found" : "Missing");
-  console.log("API Key value:", apiKey);
+  const userId = "demo"; // In a real app, this would come from auth
 
-  const [messages, setMessages] = useState<Message[]>([
-    {
-      id: '1',
-      type: 'bot',
-      content: language === 'en' 
-        ? "Hello! I'm your medical AI assistant. I can help you with health-related questions, analyze symptoms, and provide medical information. How can I assist you today?"
-        : "مرحباً! أنا مساعدك الطبي الذكي. يمكنني مساعدتك في الأسئلة المتعلقة بالصحة وتحليل الأعراض وتقديم المعلومات الطبية. كيف يمكنني مساعدتك اليوم؟",
-      timestamp: new Date()
-    }
-  ]);
-
+  const [currentSessionId, setCurrentSessionId] = useState<string | null>(null);
+  const [messages, setMessages] = useState<Message[]>([]);
   const [inputValue, setInputValue] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [isDeepThink, setIsDeepThink] = useState(false);
@@ -61,12 +58,92 @@ const Chatbot = () => {
   const [uploadedFile, setUploadedFile] = useState<File | null>(null);
   const [rateLimitCount, setRateLimitCount] = useState(0);
   const [isRateLimited, setIsRateLimited] = useState(false);
+  const [userFirstName, setUserFirstName] = useState<string>('');
+  const [editingMessageId, setEditingMessageId] = useState<string | null>(null);
+  const [editingContent, setEditingContent] = useState<string>('');
   
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const recognition = useRef<SpeechRecognition | null>(null);
 
-  // Rate limiting reset
+  // Initialize session and fetch user data
+  useEffect(() => {
+    const initializeSession = async () => {
+      // Fetch user profile for personalized greeting
+      const userRef = ref(realTimeDb, `users/${userId}`);
+      onValue(userRef, (snapshot) => {
+        const userData = snapshot.val();
+        if (userData?.firstName) {
+          setUserFirstName(userData.firstName);
+        }
+      });
+
+      let activeSessionId = sessionId;
+      
+      if (!activeSessionId) {
+        // Create new session
+        const sessionsRef = ref(realTimeDb, `users/${userId}/chatSessions`);
+        const newSessionRef = push(sessionsRef);
+        activeSessionId = newSessionRef.key!;
+        
+        // Set session metadata
+        await set(ref(realTimeDb, `users/${userId}/chatSessions/${activeSessionId}/metadata`), {
+          createdAt: Date.now(),
+          updatedAt: Date.now()
+        });
+        
+        navigate(`/chat/${activeSessionId}`, { replace: true });
+      }
+      
+      setCurrentSessionId(activeSessionId);
+      
+      // Load messages for this session
+      const messagesRef = ref(realTimeDb, `users/${userId}/chatSessions/${activeSessionId}/messages`);
+      onValue(messagesRef, (snapshot) => {
+        const messagesData = snapshot.val();
+        if (messagesData) {
+          const messagesList = Object.entries(messagesData).map(([id, data]: [string, any]) => ({
+            id,
+            type: data.type,
+            content: data.content,
+            timestamp: new Date(data.timestamp),
+            fileUrl: data.fileUrl,
+            fileName: data.fileName,
+            isDeepThink: data.isDeepThink
+          }));
+          
+          messagesList.sort((a, b) => a.timestamp.getTime() - b.timestamp.getTime());
+          setMessages(messagesList);
+        } else {
+          // Add personalized greeting for new sessions
+          addPersonalizedGreeting(activeSessionId);
+        }
+      });
+    };
+
+    initializeSession();
+  }, [sessionId, userId, navigate]);
+
+  const addPersonalizedGreeting = async (sessionId: string) => {
+    const greeting = userFirstName 
+      ? (language === 'en' 
+          ? `**Hello, ${userFirstName}!**\nHow can I help you today?`
+          : `**مرحباً، ${userFirstName}!**\nكيف يمكنني مساعدتك اليوم؟`)
+      : (language === 'en' 
+          ? "**Hello!** I'm your medical AI assistant. How can I help you today?"
+          : "**مرحباً!** أنا مساعدك الطبي الذكي. كيف يمكنني مساعدتك اليوم؟");
+
+    const greetingMessage = {
+      type: 'bot',
+      content: greeting,
+      timestamp: Date.now(),
+      isDeepThink: false
+    };
+
+    const messagesRef = ref(realTimeDb, `users/${userId}/chatSessions/${sessionId}/messages`);
+    await push(messagesRef, greetingMessage);
+  };
+
   useEffect(() => {
     const timer = setTimeout(() => {
       setRateLimitCount(0);
@@ -97,29 +174,8 @@ const Chatbot = () => {
     }
   }, [language]);
 
-  const isNonMedicalQuery = (query: string): boolean => {
-    const nonMedicalKeywords = [
-      'joke', 'funny', 'weather', 'news', 'politics', 'sports', 'movie', 'music',
-      'recipe', 'cooking', 'travel', 'shopping', 'entertainment', 'games', 'google',
-      'account', 'password', 'login', 'computer', 'software', 'programming', 'math',
-      'history', 'geography', 'science', 'physics', 'chemistry', 'biology', 'english',
-      'literature', 'art', 'business', 'finance', 'economics', 'law', 'education'
-    ];
-    const arabicNonMedical = [
-      'نكتة', 'مضحك', 'طقس', 'أخبار', 'سياسة', 'رياضة', 'فيلم', 'موسيقى',
-      'وصفة', 'طبخ', 'سفر', 'تسوق', 'ترفيه', 'ألعاب', 'جوجل', 'حساب', 'كلمة سر',
-      'رياضيات', 'تاريخ', 'جغرافيا', 'علوم', 'فيزياء', 'كيمياء', 'أحياء', 'إنجليزي',
-      'أدب', 'فن', 'أعمال', 'مالية', 'اقتصاد', 'قانون', 'تعليم'
-    ];
-    
-    const lowercaseQuery = query.toLowerCase();
-    return nonMedicalKeywords.some(keyword => lowercaseQuery.includes(keyword)) ||
-           arabicNonMedical.some(keyword => query.includes(keyword));
-  };
-
   const callGeminiAPI = async (query: string, isDeepThink: boolean): Promise<string> => {
     console.log("callGeminiAPI called with:", query);
-    console.log("Using API Key:", apiKey);
 
     // Domain restriction check
     if (isNonMedicalQuery(query)) {
@@ -127,7 +183,6 @@ const Chatbot = () => {
     }
 
     try {
-      // Use the correct Gemini API endpoint and model
       const modelName = 'gemini-1.5-flash';
       const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/${modelName}:generateContent?key=${apiKey}`;
       
@@ -182,30 +237,12 @@ This information is for educational purposes and does not replace consulting a q
         })
       });
 
-      console.log("API Response status:", response.status);
-
       if (!response.ok) {
         const errorData = await response.json();
-        console.error("API Error Details:", errorData);
-        
-        if (response.status === 401) {
-          throw new Error("Invalid Gemini API key. Contact support.");
-        } else if (response.status === 429) {
-          throw new Error("Rate limit exceeded. Please wait and try again.");
-        } else if (response.status === 404) {
-          throw new Error("Model not found. Please contact support.");
-        } else {
-          throw new Error(`API Error: ${response.status} - ${errorData.error?.message || 'Unknown error'}`);
-        }
+        throw new Error(`API Error: ${response.status} - ${errorData.error?.message || 'Unknown error'}`);
       }
 
       const data = await response.json();
-      console.log("API Response data:", data);
-
-      if (!data.candidates || !data.candidates[0] || !data.candidates[0].content) {
-        throw new Error("Invalid response format from Gemini API");
-      }
-
       return data.candidates[0].content.parts[0].text;
     } catch (error) {
       console.error("Gemini API Error:", error);
@@ -213,15 +250,29 @@ This information is for educational purposes and does not replace consulting a q
     }
   };
 
+  const isNonMedicalQuery = (query: string): boolean => {
+    const nonMedicalKeywords = [
+      'joke', 'funny', 'weather', 'news', 'politics', 'sports', 'movie', 'music',
+      'recipe', 'cooking', 'travel', 'shopping', 'entertainment', 'games', 'google',
+      'account', 'password', 'login', 'computer', 'software', 'programming', 'math',
+      'history', 'geography', 'science', 'physics', 'chemistry', 'biology', 'english',
+      'literature', 'art', 'business', 'finance', 'economics', 'law', 'education'
+    ];
+    const arabicNonMedical = [
+      'نكتة', 'مضحك', 'طقس', 'أخبار', 'سياسة', 'رياضة', 'فيلم', 'موسيقى',
+      'وصفة', 'طبخ', 'سفر', 'تسوق', 'ترفيه', 'ألعاب', 'جوجل', 'حساب', 'كلمة سر',
+      'رياضيات', 'تاريخ', 'جغرافيا', 'علوم', فيزياء', 'كيمياء', 'أحياء', 'إنجليزي',
+      'أدب', 'فن', 'أعمال', 'مالية', 'اقتصاد', 'قانون', 'تعليم'
+    ];
+    
+    const lowercaseQuery = query.toLowerCase();
+    return nonMedicalKeywords.some(keyword => lowercaseQuery.includes(keyword)) ||
+           arabicNonMedical.some(keyword => query.includes(keyword));
+  };
+
   const sendOrUpdateMessage = async () => {
-    if (!inputValue.trim() || isLoading || isRateLimited) {
-      console.warn("Cannot send message:", { empty: !inputValue.trim(), loading: isLoading, rateLimited: isRateLimited });
-      return;
-    }
+    if (!inputValue.trim() || isLoading || isRateLimited || !currentSessionId) return;
 
-    console.log("sendOrUpdateMessage called with:", inputValue);
-
-    // Rate limiting check
     if (rateLimitCount >= 5) {
       setIsRateLimited(true);
       toast({
@@ -234,16 +285,17 @@ This information is for educational purposes and does not replace consulting a q
       return;
     }
 
-    const userMessage: Message = {
-      id: Date.now().toString(),
+    const userMessage = {
       type: 'user',
       content: inputValue,
-      timestamp: new Date(),
+      timestamp: Date.now(),
       fileUrl: uploadedFile ? URL.createObjectURL(uploadedFile) : undefined,
       fileName: uploadedFile?.name
     };
 
-    setMessages(prev => [...prev, userMessage]);
+    const messagesRef = ref(realTimeDb, `users/${userId}/chatSessions/${currentSessionId}/messages`);
+    await push(messagesRef, userMessage);
+
     setInputValue('');
     setUploadedFile(null);
     setIsLoading(true);
@@ -251,15 +303,13 @@ This information is for educational purposes and does not replace consulting a q
 
     // Only show thinking indicator if Deep Think is enabled
     if (isDeepThink) {
-      const typingMessage: Message = {
-        id: 'typing',
+      const typingMessage = {
         type: 'bot',
         content: '💭 Chatbot is thinking...',
-        timestamp: new Date(),
+        timestamp: Date.now(),
         isTyping: true
       };
-
-      setMessages(prev => [...prev, typingMessage]);
+      await push(messagesRef, typingMessage);
     }
 
     try {
@@ -267,42 +317,37 @@ This information is for educational purposes and does not replace consulting a q
       
       // Remove typing indicator if it was shown
       if (isDeepThink) {
-        setMessages(prev => prev.filter(msg => msg.id !== 'typing'));
+        // Remove the typing message from Firebase
+        const currentMessages = await new Promise((resolve) => {
+          onValue(messagesRef, (snapshot) => {
+            resolve(snapshot.val());
+          }, { onlyOnce: true });
+        });
+        
+        // Find and remove typing message
+        if (currentMessages) {
+          const typingEntry = Object.entries(currentMessages as any).find(([_, msg]: [string, any]) => 
+            msg.isTyping === true
+          );
+          if (typingEntry) {
+            await remove(ref(realTimeDb, `users/${userId}/chatSessions/${currentSessionId}/messages/${typingEntry[0]}`));
+          }
+        }
       }
       
-      const botMessage: Message = {
-        id: (Date.now() + 1).toString(),
+      const botMessage = {
         type: 'bot',
         content: response,
-        timestamp: new Date(),
+        timestamp: Date.now(),
         isDeepThink
       };
 
-      setMessages(prev => [...prev, botMessage]);
+      await push(messagesRef, botMessage);
 
-      // Scroll to bottom after new message
-      setTimeout(() => {
-        messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-      }, 100);
-
-      // Save to Firebase
-      try {
-        const chatRef = ref(realTimeDb, 'chats/demo');
-        await push(chatRef, {
-          userMessage: userMessage.content,
-          botResponse: response,
-          timestamp: Date.now(),
-          isDeepThink
-        });
-      } catch (firebaseError) {
-        console.error("Firebase Error:", firebaseError);
-      }
+      // Update session metadata
+      await set(ref(realTimeDb, `users/${userId}/chatSessions/${currentSessionId}/metadata/updatedAt`), Date.now());
 
     } catch (error) {
-      if (isDeepThink) {
-        setMessages(prev => prev.filter(msg => msg.id !== 'typing'));
-      }
-      
       const errorMessage = error instanceof Error ? error.message : "Failed to get response. Please try again.";
       
       toast({
@@ -313,6 +358,101 @@ This information is for educational purposes and does not replace consulting a q
     } finally {
       setIsLoading(false);
     }
+  };
+
+  const handleEditMessage = async (messageId: string, newContent: string) => {
+    if (!currentSessionId) return;
+    
+    // Update message in Firebase
+    await set(ref(realTimeDb, `users/${userId}/chatSessions/${currentSessionId}/messages/${messageId}/content`), newContent);
+    
+    // Find the bot response after this message and regenerate it
+    const userMessageIndex = messages.findIndex(msg => msg.id === messageId);
+    if (userMessageIndex !== -1 && userMessageIndex < messages.length - 1) {
+      const botMessage = messages[userMessageIndex + 1];
+      if (botMessage.type === 'bot') {
+        try {
+          setIsLoading(true);
+          const newResponse = await callGeminiAPI(newContent, botMessage.isDeepThink || false);
+          await set(ref(realTimeDb, `users/${userId}/chatSessions/${currentSessionId}/messages/${botMessage.id}/content`), newResponse);
+        } catch (error) {
+          toast({
+            title: language === 'en' ? "Error" : "خطأ",
+            description: "Failed to regenerate response",
+            variant: "destructive"
+          });
+        } finally {
+          setIsLoading(false);
+        }
+      }
+    }
+    
+    setEditingMessageId(null);
+    setEditingContent('');
+  };
+
+  const handleSaveMessage = async (message: Message) => {
+    const savedRef = ref(realTimeDb, `users/${userId}/savedMessages`);
+    await push(savedRef, {
+      id: message.id,
+      content: message.content,
+      timestamp: message.timestamp.getTime(),
+      type: message.type
+    });
+    
+    toast({
+      title: language === 'en' ? "Message Saved" : "تم حفظ الرسالة",
+      description: language === 'en' ? "Message saved successfully!" : "تم حفظ الرسالة بنجاح!"
+    });
+  };
+
+  const handleFavoriteMessage = async (message: Message) => {
+    const favRef = ref(realTimeDb, `users/${userId}/favouriteMessages`);
+    await push(favRef, {
+      id: message.id,
+      content: message.content,
+      timestamp: message.timestamp.getTime(),
+      type: message.type
+    });
+    
+    toast({
+      title: language === 'en' ? "Message Favorited" : "تم إضافة الرسالة للمفضلة",
+      description: language === 'en' ? "Message added to favorites!" : "تم إضافة الرسالة للمفضلة!"
+    });
+  };
+
+  const handleCopyMessage = async (content: string) => {
+    try {
+      await navigator.clipboard.writeText(content);
+      toast({
+        title: language === 'en' ? "Copied!" : "تم النسخ!",
+        description: language === 'en' ? "Copied to clipboard!" : "تم النسخ إلى الحافظة!"
+      });
+    } catch (error) {
+      toast({
+        title: language === 'en' ? "Error" : "خطأ",
+        description: language === 'en' ? "Failed to copy" : "فشل في النسخ",
+        variant: "destructive"
+      });
+    }
+  };
+
+  const handleNewChat = () => {
+    navigate('/chatbot');
+  };
+
+  const handleClearChat = async () => {
+    if (!currentSessionId) return;
+    
+    await remove(ref(realTimeDb, `users/${userId}/chatSessions/${currentSessionId}/messages`));
+    
+    // Add new greeting
+    addPersonalizedGreeting(currentSessionId);
+    
+    toast({
+      title: language === 'en' ? "Chat Cleared" : "تم مسح المحادثة",
+      description: language === 'en' ? "Chat history has been cleared." : "تم مسح تاريخ المحادثة."
+    });
   };
 
   const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -362,29 +502,32 @@ This information is for educational purposes and does not replace consulting a q
     }
   };
 
-  const clearChat = () => {
-    setMessages([{
-      id: '1',
-      type: 'bot',
-      content: language === 'en' 
-        ? "Hello! I'm your medical AI assistant. How can I assist you today?"
-        : "مرحباً! أنا مساعدك الطبي الذكي. كيف يمكنني مساعدتك اليوم؟",
-      timestamp: new Date()
-    }]);
-    toast({
-      title: language === 'en' ? "Chat Cleared" : "تم مسح المحادثة",
-      description: language === 'en' 
-        ? "Chat history has been cleared."
-        : "تم مسح تاريخ المحادثة."
-    });
-  };
-
-  // Scroll to bottom when new messages arrive (not on initial load)
   useEffect(() => {
     if (messages.length > 1) {
       messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
     }
   }, [messages]);
+
+  useEffect(() => {
+    if ('webkitSpeechRecognition' in window || 'SpeechRecognition' in window) {
+      const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+      recognition.current = new SpeechRecognition();
+      recognition.current.lang = language === 'ar' ? 'ar-SA' : 'en-US';
+      recognition.current.continuous = false;
+      recognition.current.interimResults = true;
+
+      recognition.current.onresult = (event) => {
+        const transcript = Array.from(event.results)
+          .map(result => result[0].transcript)
+          .join('');
+        setInputValue(transcript);
+      };
+
+      recognition.current.onend = () => {
+        setIsRecording(false);
+      };
+    }
+  }, [language]);
 
   return (
     <MainLayout>
@@ -404,113 +547,60 @@ This information is for educational purposes and does not replace consulting a q
               ? "Powered by AI to answer your health questions in real time."
               : "مدعوم بالذكاء الاصطناعي للرد على أسئلتك الصحية في الوقت الفعلي."}
           </p>
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={clearChat}
-            className="mt-2 text-muted-foreground hover:text-destructive"
-          >
-            <Trash2 className="w-4 h-4 mr-2" />
-            {t('chatbot.clearChat')}
-          </Button>
+          <div className="flex justify-center gap-2 mt-2">
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => navigate('/history')}
+              className="text-muted-foreground hover:text-primary"
+            >
+              <History className="w-4 h-4 mr-2" />
+              {language === 'en' ? 'History' : 'التاريخ'}
+            </Button>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={handleNewChat}
+              className="text-muted-foreground hover:text-primary"
+            >
+              <Plus className="w-4 h-4 mr-2" />
+              {language === 'en' ? 'New Chat' : 'محادثة جديدة'}
+            </Button>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={handleClearChat}
+              className="text-muted-foreground hover:text-destructive"
+            >
+              <Trash2 className="w-4 h-4 mr-2" />
+              {language === 'en' ? 'Clear Chat' : 'مسح المحادثة'}
+            </Button>
+          </div>
         </motion.div>
 
         {/* Chat Messages */}
         <div className="flex-1 overflow-y-auto space-y-4 mb-4 scroll-smooth">
           <AnimatePresence>
             {messages.map((message) => (
-              <motion.div
+              <MessageBubble
                 key={message.id}
-                initial={{ 
-                  opacity: 0, 
-                  x: message.type === 'user' ? 20 : -20,
-                  scale: 0.95 
-                }}
-                animate={{ opacity: 1, x: 0, scale: 1 }}
-                exit={{ opacity: 0, scale: 0.95 }}
-                transition={{ duration: 0.3 }}
-                className={`flex ${message.type === 'user' ? 'justify-end' : 'justify-start'}`}
-              >
-                <div className={`max-w-[80%] ${message.type === 'user' ? 'order-2' : 'order-1'}`}>
-                  {/* Message bubble */}
-                  <div
-                    className={`p-4 rounded-2xl ${
-                      message.type === 'user'
-                        ? 'bg-health-primary text-white'
-                        : 'glass-card border'
-                    } ${message.isDeepThink ? 'border-health-secondary border-2' : ''}`}
-                  >
-                    {/* Bot message header */}
-                    {message.type === 'bot' && (
-                      <div className="flex items-center justify-between mb-2">
-                        <div className="flex items-center">
-                          <div className="w-6 h-6 bg-health-primary/10 rounded-full flex items-center justify-center mr-2">
-                            <Stethoscope className="w-3 h-3 text-health-primary" />
-                          </div>
-                          <span className="text-xs text-muted-foreground">
-                            Medical AI
-                            {message.isDeepThink && ' • Deep Think'}
-                          </span>
-                        </div>
-                        <button
-                          onClick={() => speakMessage(message.content)}
-                          className="text-muted-foreground hover:text-health-primary transition-colors"
-                        >
-                          <Volume2 className="w-4 h-4" />
-                        </button>
-                      </div>
-                    )}
-
-                    {/* File attachment */}
-                    {message.fileUrl && (
-                      <div className="mb-2 p-2 bg-white/10 rounded-lg flex items-center">
-                        {message.fileName?.includes('.pdf') ? (
-                          <FileText className="w-4 h-4 mr-2" />
-                        ) : (
-                          <ImageIcon className="w-4 h-4 mr-2" />
-                        )}
-                        <span className="text-sm">{message.fileName}</span>
-                      </div>
-                    )}
-
-                    {/* Message content */}
-                    <div className={message.isTyping ? 'flex items-center' : ''}>
-                      {message.isTyping ? (
-                        <div className="flex space-x-1">
-                          <div className="w-2 h-2 bg-health-primary rounded-full animate-bounce"></div>
-                          <div className="w-2 h-2 bg-health-primary rounded-full animate-bounce" style={{ animationDelay: '0.1s' }}></div>
-                          <div className="w-2 h-2 bg-health-primary rounded-full animate-bounce" style={{ animationDelay: '0.2s' }}></div>
-                          <span className="ml-2 text-sm">{message.content}</span>
-                        </div>
-                      ) : (
-                        <p className="whitespace-pre-wrap">{message.content}</p>
-                      )}
-                    </div>
-
-                    {/* Timestamp */}
-                    <div className={`text-xs mt-2 ${message.type === 'user' ? 'text-white/70' : 'text-muted-foreground'}`}>
-                      {message.timestamp.toLocaleTimeString()}
-                    </div>
-                  </div>
-                </div>
-
-                {/* Avatar */}
-                <div className={`w-8 h-8 rounded-full flex items-center justify-center ${
-                  message.type === 'user' ? 'order-1 ml-2 bg-health-primary' : 'order-2 mr-2 bg-health-secondary/10'
-                }`}>
-                  {message.type === 'user' ? (
-                    <User className="w-4 h-4 text-white" />
-                  ) : (
-                    <Bot className="w-4 h-4 text-health-secondary" />
-                  )}
-                </div>
-              </motion.div>
+                message={message}
+                isEditing={editingMessageId === message.id}
+                editingContent={editingContent}
+                onEdit={setEditingMessageId}
+                onSave={handleEditMessage}
+                onCopy={handleCopyMessage}
+                onSaveMessage={handleSaveMessage}
+                onFavorite={handleFavoriteMessage}
+                setEditingContent={setEditingContent}
+                language={language}
+              />
             ))}
           </AnimatePresence>
           <div ref={messagesEndRef} />
         </div>
 
-        {/* Input Area */}
+        {/* Input Area - keep existing code */}
         <motion.div
           className="glass-card p-4 rounded-2xl border"
           initial={{ opacity: 0, y: 20 }}
@@ -577,9 +667,8 @@ This information is for educational purposes and does not replace consulting a q
               />
             </div>
 
-            {/* Action Buttons */}
+            {/* Action Buttons - keep existing code */}
             <div className="flex space-x-1">
-              {/* File Upload */}
               <Button
                 variant="ghost"
                 size="sm"
@@ -590,18 +679,16 @@ This information is for educational purposes and does not replace consulting a q
                 <Paperclip className="w-4 h-4" />
               </Button>
 
-              {/* Voice Recording */}
               <Button
                 variant="ghost"
                 size="sm"
-                onClick={toggleRecording}
+                onClick={toggleRecording} // Keep existing toggle recording logic
                 disabled={isLoading}
                 className={`p-2 ${isRecording ? 'text-red-500' : ''}`}
               >
                 {isRecording ? <MicOff className="w-4 h-4" /> : <Mic className="w-4 h-4" />}
               </Button>
 
-              {/* Send Button */}
               <Button
                 type="button"
                 onClick={sendOrUpdateMessage}
@@ -626,7 +713,7 @@ This information is for educational purposes and does not replace consulting a q
             ref={fileInputRef}
             type="file"
             accept="image/*,.pdf"
-            onChange={handleFileUpload}
+            onChange={handleFileUpload} // Keep existing file upload logic
             className="hidden"
           />
         </motion.div>
