@@ -174,11 +174,11 @@ const Chatbot = () => {
     }
   }, [language]);
 
-  const callGeminiAPI = async (query: string, isDeepThink: boolean): Promise<string> => {
-    console.log("callGeminiAPI called with:", query);
+  const callGeminiAPI = async (query: string, isDeepThink: boolean, hasAttachment = false): Promise<string> => {
+    console.log("callGeminiAPI called with:", query, "hasAttachment:", hasAttachment);
 
-    // Domain restriction check
-    if (isNonMedicalQuery(query)) {
+    // Domain restriction check - bypass for attachments
+    if (!hasAttachment && isNonMedicalQuery(query)) {
       return "I'm sorry, I can only provide medical and health-related information. Please ask a question about symptoms, conditions, treatments, or wellness.";
     }
 
@@ -196,12 +196,12 @@ Answer only medical and health questions. If the query is outside healthcare, re
 - If the user's input is in Arabic, reply entirely in that Arabic dialect.
 - If the user's input is in English, reply entirely in English.
 
-**3. Response Format**
-- Use Markdown with bold headings only (e.g., **Overview**, **Symptoms**)
+**3. Response Format - CRITICAL**
+- Use clean Markdown with bold headings only (e.g., **Overview**, **Symptoms**)
 - Use hyphens for bullet lists (e.g., "- Tremor in hands")
-- Do not use asterisks for emphasis or bullets inside the body text
-- Do not wrap content in backticks or code blocks
-- Never use multiple asterisks for decoration (no ***** or ******)
+- NEVER use asterisks for decoration or emphasis around normal text
+- NEVER wrap content in multiple asterisks like *** or *****
+- Do not use backticks or code blocks
 - Keep formatting clean and professional
 
 **4. Thinking Indicator**
@@ -251,6 +251,7 @@ This information is for educational purposes and does not replace consulting a q
       responseText = responseText.replace(/\*{3,}/g, ''); // Remove 3+ consecutive asterisks
       responseText = responseText.replace(/^\*+\s*/gm, ''); // Remove leading asterisks
       responseText = responseText.replace(/\s*\*+$/gm, ''); // Remove trailing asterisks
+      responseText = responseText.replace(/\*{2,}([^*]+)\*{2,}/g, '**$1**'); // Fix multiple asterisks around text
       
       return responseText;
     } catch (error) {
@@ -279,13 +280,14 @@ This information is for educational purposes and does not replace consulting a q
            arabicNonMedical.some(keyword => query.includes(keyword));
   };
 
-  const sendOrUpdateMessage = async () => {
-    console.log("Send clicked, message:", inputValue);
+  const sendMessage = async () => {
+    console.log("sendMessage fired:", inputValue);
     console.log("Current session ID:", currentSessionId);
     console.log("Is loading:", isLoading);
     console.log("Is rate limited:", isRateLimited);
+    console.log("Uploaded file:", uploadedFile);
     
-    if (!inputValue.trim() || isLoading || isRateLimited || !currentSessionId) {
+    if ((!inputValue.trim() && !uploadedFile) || isLoading || isRateLimited || !currentSessionId) {
       console.log("Send blocked - missing requirements");
       return;
     }
@@ -304,9 +306,12 @@ This information is for educational purposes and does not replace consulting a q
 
     console.log("Proceeding with message send...");
 
+    // Detect if this is an attachment
+    const hasAttachment = !!uploadedFile;
+    
     const userMessage = {
       type: 'user',
-      content: inputValue,
+      content: inputValue || (uploadedFile ? `Uploaded file: ${uploadedFile.name}` : ''),
       timestamp: Date.now(),
       fileUrl: uploadedFile ? URL.createObjectURL(uploadedFile) : undefined,
       fileName: uploadedFile?.name
@@ -315,6 +320,8 @@ This information is for educational purposes and does not replace consulting a q
     const messagesRef = ref(realTimeDb, `users/${userId}/chatSessions/${currentSessionId}/messages`);
     await push(messagesRef, userMessage);
 
+    const messageContent = inputValue || `Please analyze this medical file: ${uploadedFile?.name}`;
+    
     setInputValue('');
     setUploadedFile(null);
     setIsLoading(true);
@@ -332,7 +339,7 @@ This information is for educational purposes and does not replace consulting a q
     }
 
     try {
-      const response = await callGeminiAPI(userMessage.content, isDeepThink);
+      const response = await callGeminiAPI(messageContent, isDeepThink, hasAttachment);
       
       // Remove typing indicator if it was shown
       if (isDeepThink) {
@@ -671,7 +678,7 @@ This information is for educational purposes and does not replace consulting a q
           {/* Input Row */}
           <form onSubmit={(e) => {
             e.preventDefault();
-            sendOrUpdateMessage();
+            sendMessage();
           }}>
             <div className="flex items-end space-x-2">
               <div className="flex-1">
@@ -683,7 +690,7 @@ This information is for educational purposes and does not replace consulting a q
                   onKeyPress={(e) => {
                     if (e.key === 'Enter' && !e.shiftKey) {
                       e.preventDefault();
-                      sendOrUpdateMessage();
+                      sendMessage();
                     }
                   }}
                   disabled={isLoading || isRateLimited}
@@ -715,8 +722,9 @@ This information is for educational purposes and does not replace consulting a q
                 </Button>
 
                 <Button
-                  type="submit"
-                  disabled={!inputValue.trim() || isLoading || isRateLimited}
+                  type="button"
+                  onClick={sendMessage}
+                  disabled={(!inputValue.trim() && !uploadedFile) || isLoading || isRateLimited}
                   className="btn-primary p-2"
                 >
                   {isLoading ? (
