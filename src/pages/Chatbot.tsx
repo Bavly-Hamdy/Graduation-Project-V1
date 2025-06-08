@@ -3,6 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { useI18n } from '@/contexts/I18nContext';
 import { useTheme } from '@/contexts/ThemeContext';
 import MainLayout from '@/components/layout/MainLayout';
+import MessageActions from '@/components/chatbot/MessageActions';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { useToast } from '@/hooks/use-toast';
@@ -17,9 +18,7 @@ import {
   Trash2,
   Bot,
   User,
-  Stethoscope,
-  Volume2,
-  VolumeX
+  Stethoscope
 } from 'lucide-react';
 
 interface Message {
@@ -117,21 +116,28 @@ const Chatbot = () => {
            arabicNonMedical.some(keyword => query.includes(keyword));
   };
 
+  const cleanResponse = (response: string): string => {
+    return response
+      .replace(/\*{3,}/g, '') // Remove 3+ asterisks
+      .replace(/\*{2}([^*]+)\*{2}/g, '**$1**') // Keep only proper bold formatting
+      .replace(/\*([^*\n]+)\*/g, '$1') // Remove single asterisk emphasis
+      .trim();
+  };
+
   const callGeminiAPI = async (query: string, isDeepThink: boolean): Promise<string> => {
     console.log("callGeminiAPI called with:", query);
-    console.log("Using API Key:", apiKey);
 
-    // Domain restriction check
     if (isNonMedicalQuery(query)) {
-      return "I'm sorry, I can only provide medical and health-related information. Please ask a question about symptoms, conditions, treatments, or wellness.";
+      return language === 'en' 
+        ? "I'm sorry, I can only provide medical and health-related information. Please ask a question about symptoms, conditions, treatments, or wellness."
+        : "آسف، يمكنني فقط تقديم المعلومات الطبية والصحية. يرجى طرح سؤال حول الأعراض أو الحالات أو العلاجات أو العافية.";
     }
 
     try {
-      // Use the correct Gemini API endpoint and model
       const modelName = 'gemini-1.5-flash';
       const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/${modelName}:generateContent?key=${apiKey}`;
       
-      const systemPrompt = `You are a certified medical AI assistant. Follow these rules:
+      const systemPrompt = `You are a certified medical AI assistant. Follow these rules strictly:
 
 **1. Domain Restriction**
 Answer only medical and health questions. If the query is outside healthcare, reply:
@@ -141,24 +147,23 @@ Answer only medical and health questions. If the query is outside healthcare, re
 - If the user's input is in Arabic, reply entirely in that Arabic dialect.
 - If the user's input is in English, reply entirely in English.
 
-**3. Response Format**
-- Use Markdown with bold headings only (e.g., **Overview**, **Symptoms**)
-- Use hyphens for bullet lists (e.g., "- Tremor in hands")
-- Do not use asterisks for emphasis or bullets inside the body text
-- Do not wrap content in backticks or code blocks
+**3. Response Format - CRITICAL**
+- Use only standard Markdown: **Bold Headings** and - bullet points
+- NEVER use asterisk decorations like *** or ***** around text
+- NEVER wrap normal text in asterisks for emphasis
+- Structure: **Heading** followed by paragraphs and - bullet lists
+- Example format:
+**Overview**
+This condition involves...
 
-**4. Thinking Indicator**
-- Show "💭 Chatbot is thinking..." only if Deep Think is enabled
-- Otherwise respond immediately without any interim placeholder
+**Symptoms**
+- Symptom one
+- Symptom two
 
-**5. Disclaimer**
-End every reply with:
-This information is for educational purposes and does not replace consulting a qualified healthcare professional.
-
-**Response Guidelines:**
+**4. Professional Tone**
 - ${isDeepThink ? 'Provide detailed, comprehensive medical analysis' : 'Provide concise, focused medical information'}
-- Use professional, empathetic medical tone
-- Structure: Bold heading + short paragraphs + hyphen bullet lists + disclaimer
+- Use empathetic, professional medical language
+- Always end with: "This information is for educational purposes and does not replace consulting a qualified healthcare professional."
 
 **Length:** ${isDeepThink ? '4-6 paragraphs with detailed explanations' : '2-3 concise paragraphs'}`;
 
@@ -182,31 +187,19 @@ This information is for educational purposes and does not replace consulting a q
         })
       });
 
-      console.log("API Response status:", response.status);
-
       if (!response.ok) {
         const errorData = await response.json();
         console.error("API Error Details:", errorData);
-        
-        if (response.status === 401) {
-          throw new Error("Invalid Gemini API key. Contact support.");
-        } else if (response.status === 429) {
-          throw new Error("Rate limit exceeded. Please wait and try again.");
-        } else if (response.status === 404) {
-          throw new Error("Model not found. Please contact support.");
-        } else {
-          throw new Error(`API Error: ${response.status} - ${errorData.error?.message || 'Unknown error'}`);
-        }
+        throw new Error(`API Error: ${response.status}`);
       }
 
       const data = await response.json();
-      console.log("API Response data:", data);
-
       if (!data.candidates || !data.candidates[0] || !data.candidates[0].content) {
         throw new Error("Invalid response format from Gemini API");
       }
 
-      return data.candidates[0].content.parts[0].text;
+      const rawResponse = data.candidates[0].content.parts[0].text;
+      return cleanResponse(rawResponse);
     } catch (error) {
       console.error("Gemini API Error:", error);
       throw error;
@@ -313,6 +306,33 @@ This information is for educational purposes and does not replace consulting a q
     } finally {
       setIsLoading(false);
     }
+  };
+
+  const handleEditMessage = async (messageId: string, newContent: string) => {
+    console.log("Editing message:", messageId, newContent);
+    
+    // Find the message index
+    const messageIndex = messages.findIndex(msg => msg.id === messageId);
+    if (messageIndex === -1) return;
+
+    // Update the user message
+    const updatedMessages = [...messages];
+    updatedMessages[messageIndex] = {
+      ...updatedMessages[messageIndex],
+      content: newContent
+    };
+
+    // Remove any subsequent bot messages
+    const messagesToKeep = updatedMessages.slice(0, messageIndex + 1);
+    setMessages(messagesToKeep);
+
+    // Set the input to the new content and trigger a new response
+    setInputValue(newContent);
+    
+    // Automatically send the edited message
+    setTimeout(() => {
+      sendOrUpdateMessage();
+    }, 100);
   };
 
   const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -429,7 +449,7 @@ This information is for educational purposes and does not replace consulting a q
                 animate={{ opacity: 1, x: 0, scale: 1 }}
                 exit={{ opacity: 0, scale: 0.95 }}
                 transition={{ duration: 0.3 }}
-                className={`flex ${message.type === 'user' ? 'justify-end' : 'justify-start'}`}
+                className={`flex ${message.type === 'user' ? 'justify-end' : 'justify-start'} group`}
               >
                 <div className={`max-w-[80%] ${message.type === 'user' ? 'order-2' : 'order-1'}`}>
                   {/* Message bubble */}
@@ -452,12 +472,6 @@ This information is for educational purposes and does not replace consulting a q
                             {message.isDeepThink && ' • Deep Think'}
                           </span>
                         </div>
-                        <button
-                          onClick={() => speakMessage(message.content)}
-                          className="text-muted-foreground hover:text-health-primary transition-colors"
-                        >
-                          <Volume2 className="w-4 h-4" />
-                        </button>
                       </div>
                     )}
 
@@ -483,7 +497,30 @@ This information is for educational purposes and does not replace consulting a q
                           <span className="ml-2 text-sm">{message.content}</span>
                         </div>
                       ) : (
-                        <p className="whitespace-pre-wrap">{message.content}</p>
+                        <div className="whitespace-pre-wrap">
+                          {message.content.split('\n').map((line, index) => {
+                            if (line.startsWith('**') && line.endsWith('**') && line.length > 4) {
+                              return (
+                                <div key={index} className="font-bold text-health-primary mb-2 mt-4 first:mt-0">
+                                  {line.slice(2, -2)}
+                                </div>
+                              );
+                            } else if (line.startsWith('- ')) {
+                              return (
+                                <div key={index} className="ml-4 mb-1">
+                                  • {line.slice(2)}
+                                </div>
+                              );
+                            } else if (line.trim()) {
+                              return (
+                                <p key={index} className="mb-2">
+                                  {line}
+                                </p>
+                              );
+                            }
+                            return null;
+                          })}
+                        </div>
                       )}
                     </div>
 
@@ -492,6 +529,16 @@ This information is for educational purposes and does not replace consulting a q
                       {message.timestamp.toLocaleTimeString()}
                     </div>
                   </div>
+
+                  {/* Message Actions */}
+                  {!message.isTyping && (
+                    <MessageActions
+                      message={message}
+                      onEdit={handleEditMessage}
+                      onSpeak={speakMessage}
+                      language={language}
+                    />
+                  )}
                 </div>
 
                 {/* Avatar */}
