@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { motion } from 'framer-motion';
 import { Button } from '@/components/ui/button';
@@ -96,47 +97,55 @@ const MessageBubble: React.FC<MessageBubbleProps> = ({
               : 'glass-card border'
           } ${message.isDeepThink ? 'border-health-secondary border-2' : ''}`}
         >
-          {/* Action buttons overlay - Enhanced Icons */}
+          {/* Action buttons overlay */}
           {isHovered && !isEditing && (
             <motion.div
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               className={`absolute -top-2 ${message.type === 'user' ? '-left-2' : '-right-2'} flex gap-1 bg-white border rounded-lg shadow-md p-1`}
             >
-              <button
-                aria-label={language === 'en' ? 'Copy message' : 'نسخ الرسالة'}
+              <Button
+                variant="ghost"
+                size="sm"
                 onClick={() => onCopy(message.content)}
-                className="p-2 hover:bg-blue-50 rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="h-6 w-6 p-0 hover:bg-blue-50"
+                title={language === 'en' ? 'Copy' : 'نسخ'}
               >
-                <Copy className="w-6 h-6 text-blue-600" />
-              </button>
+                <Copy className="w-3 h-3" />
+              </Button>
               
               {message.type === 'user' && (
-                <button
-                  aria-label={language === 'en' ? 'Edit message' : 'تعديل الرسالة'}
+                <Button
+                  variant="ghost"
+                  size="sm"
                   onClick={handleEditStart}
-                  className="p-2 hover:bg-green-50 rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-green-500"
+                  className="h-6 w-6 p-0 hover:bg-green-50"
+                  title={language === 'en' ? 'Edit' : 'تعديل'}
                 >
-                  <Edit3 className="w-6 h-6 text-green-600" />
-                </button>
+                  <Edit3 className="w-3 h-3" />
+                </Button>
               )}
               
               {message.type === 'bot' && (
                 <>
-                  <button
-                    aria-label={language === 'en' ? 'Save message' : 'حفظ الرسالة'}
+                  <Button
+                    variant="ghost"
+                    size="sm"
                     onClick={() => onSaveMessage(message)}
-                    className="p-2 hover:bg-green-50 rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-green-500"
+                    className="h-6 w-6 p-0 hover:bg-green-50"
+                    title={language === 'en' ? 'Save' : 'حفظ'}
                   >
-                    <Save className="w-6 h-6 text-green-600" />
-                  </button>
-                  <button
-                    aria-label={language === 'en' ? 'Add to favorites' : 'إضافة للمفضلة'}
+                    <Save className="w-3 h-3" />
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="sm"
                     onClick={() => onFavorite(message)}
-                    className="p-2 hover:bg-yellow-50 rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-yellow-500"
+                    className="h-6 w-6 p-0 hover:bg-yellow-50"
+                    title={language === 'en' ? 'Favorite' : 'مفضلة'}
                   >
-                    <Star className="w-6 h-6 text-yellow-600" />
-                  </button>
+                    <Star className="w-3 h-3" />
+                  </Button>
                 </>
               )}
             </motion.div>

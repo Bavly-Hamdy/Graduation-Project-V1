@@ -174,11 +174,11 @@ const Chatbot = () => {
     }
   }, [language]);
 
-  const callGeminiAPI = async (query: string, isDeepThink: boolean, hasAttachment = false): Promise<string> => {
-    console.log("callGeminiAPI called with:", query, "hasAttachment:", hasAttachment);
+  const callGeminiAPI = async (query: string, isDeepThink: boolean): Promise<string> => {
+    console.log("callGeminiAPI called with:", query);
 
-    // Domain restriction check - bypass for attachments
-    if (!hasAttachment && isNonMedicalQuery(query)) {
+    // Domain restriction check
+    if (isNonMedicalQuery(query)) {
       return "I'm sorry, I can only provide medical and health-related information. Please ask a question about symptoms, conditions, treatments, or wellness.";
     }
 
@@ -196,13 +196,11 @@ Answer only medical and health questions. If the query is outside healthcare, re
 - If the user's input is in Arabic, reply entirely in that Arabic dialect.
 - If the user's input is in English, reply entirely in English.
 
-**3. Response Format - CRITICAL**
-- Use clean Markdown with bold headings only (e.g., **Overview**, **Symptoms**)
+**3. Response Format**
+- Use Markdown with bold headings only (e.g., **Overview**, **Symptoms**)
 - Use hyphens for bullet lists (e.g., "- Tremor in hands")
-- NEVER use asterisks for decoration or emphasis around normal text
-- NEVER wrap content in multiple asterisks like *** or *****
-- Do not use backticks or code blocks
-- Keep formatting clean and professional
+- Do not use asterisks for emphasis or bullets inside the body text
+- Do not wrap content in backticks or code blocks
 
 **4. Thinking Indicator**
 - Show "💭 Chatbot is thinking..." only if Deep Think is enabled
@@ -245,15 +243,7 @@ This information is for educational purposes and does not replace consulting a q
       }
 
       const data = await response.json();
-      let responseText = data.candidates[0].content.parts[0].text;
-      
-      // Clean up any asterisk decorations that might still appear
-      responseText = responseText.replace(/\*{3,}/g, ''); // Remove 3+ consecutive asterisks
-      responseText = responseText.replace(/^\*+\s*/gm, ''); // Remove leading asterisks
-      responseText = responseText.replace(/\s*\*+$/gm, ''); // Remove trailing asterisks
-      responseText = responseText.replace(/\*{2,}([^*]+)\*{2,}/g, '**$1**'); // Fix multiple asterisks around text
-      
-      return responseText;
+      return data.candidates[0].content.parts[0].text;
     } catch (error) {
       console.error("Gemini API Error:", error);
       throw error;
@@ -280,17 +270,8 @@ This information is for educational purposes and does not replace consulting a q
            arabicNonMedical.some(keyword => query.includes(keyword));
   };
 
-  const sendMessage = async () => {
-    console.log("sendMessage fired:", inputValue);
-    console.log("Current session ID:", currentSessionId);
-    console.log("Is loading:", isLoading);
-    console.log("Is rate limited:", isRateLimited);
-    console.log("Uploaded file:", uploadedFile);
-    
-    if ((!inputValue.trim() && !uploadedFile) || isLoading || isRateLimited || !currentSessionId) {
-      console.log("Send blocked - missing requirements");
-      return;
-    }
+  const sendOrUpdateMessage = async () => {
+    if (!inputValue.trim() || isLoading || isRateLimited || !currentSessionId) return;
 
     if (rateLimitCount >= 5) {
       setIsRateLimited(true);
@@ -304,14 +285,9 @@ This information is for educational purposes and does not replace consulting a q
       return;
     }
 
-    console.log("Proceeding with message send...");
-
-    // Detect if this is an attachment
-    const hasAttachment = !!uploadedFile;
-    
     const userMessage = {
       type: 'user',
-      content: inputValue || (uploadedFile ? `Uploaded file: ${uploadedFile.name}` : ''),
+      content: inputValue,
       timestamp: Date.now(),
       fileUrl: uploadedFile ? URL.createObjectURL(uploadedFile) : undefined,
       fileName: uploadedFile?.name
@@ -320,8 +296,6 @@ This information is for educational purposes and does not replace consulting a q
     const messagesRef = ref(realTimeDb, `users/${userId}/chatSessions/${currentSessionId}/messages`);
     await push(messagesRef, userMessage);
 
-    const messageContent = inputValue || `Please analyze this medical file: ${uploadedFile?.name}`;
-    
     setInputValue('');
     setUploadedFile(null);
     setIsLoading(true);
@@ -339,7 +313,7 @@ This information is for educational purposes and does not replace consulting a q
     }
 
     try {
-      const response = await callGeminiAPI(messageContent, isDeepThink, hasAttachment);
+      const response = await callGeminiAPI(userMessage.content, isDeepThink);
       
       // Remove typing indicator if it was shown
       if (isDeepThink) {
@@ -626,7 +600,7 @@ This information is for educational purposes and does not replace consulting a q
           <div ref={messagesEndRef} />
         </div>
 
-        {/* Input Area */}
+        {/* Input Area - keep existing code */}
         <motion.div
           className="glass-card p-4 rounded-2xl border"
           initial={{ opacity: 0, y: 20 }}
@@ -676,77 +650,70 @@ This information is for educational purposes and does not replace consulting a q
           )}
 
           {/* Input Row */}
-          <form onSubmit={(e) => {
-            e.preventDefault();
-            sendMessage();
-          }}>
-            <div className="flex items-end space-x-2">
-              <div className="flex-1">
-                <Input
-                  value={inputValue}
-                  onChange={(e) => setInputValue(e.target.value)}
-                  placeholder={t('chatbot.placeholder')}
-                  className="resize-none border-0 focus:ring-2 focus:ring-health-primary bg-transparent"
-                  onKeyPress={(e) => {
-                    if (e.key === 'Enter' && !e.shiftKey) {
-                      e.preventDefault();
-                      sendMessage();
-                    }
-                  }}
-                  disabled={isLoading || isRateLimited}
-                />
-              </div>
-
-              {/* Action Buttons */}
-              <div className="flex space-x-1">
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => fileInputRef.current?.click()}
-                  disabled={isLoading}
-                  className="p-2"
-                >
-                  <Paperclip className="w-4 h-4" />
-                </Button>
-
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="sm"
-                  onClick={toggleRecording}
-                  disabled={isLoading}
-                  className={`p-2 ${isRecording ? 'text-red-500' : ''}`}
-                >
-                  {isRecording ? <MicOff className="w-4 h-4" /> : <Mic className="w-4 h-4" />}
-                </Button>
-
-                <Button
-                  type="button"
-                  onClick={sendMessage}
-                  disabled={(!inputValue.trim() && !uploadedFile) || isLoading || isRateLimited}
-                  className="btn-primary p-2"
-                >
-                  {isLoading ? (
-                    <motion.div
-                      className="w-4 h-4 border-2 border-white border-t-transparent rounded-full"
-                      animate={{ rotate: 360 }}
-                      transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
-                    />
-                  ) : (
-                    <Send className="w-4 h-4" />
-                  )}
-                </Button>
-              </div>
+          <div className="flex items-end space-x-2">
+            <div className="flex-1">
+              <Input
+                value={inputValue}
+                onChange={(e) => setInputValue(e.target.value)}
+                placeholder={t('chatbot.placeholder')}
+                className="resize-none border-0 focus:ring-2 focus:ring-health-primary bg-transparent"
+                onKeyPress={(e) => {
+                  if (e.key === 'Enter' && !e.shiftKey) {
+                    e.preventDefault();
+                    sendOrUpdateMessage();
+                  }
+                }}
+                disabled={isLoading || isRateLimited}
+              />
             </div>
-          </form>
+
+            {/* Action Buttons - keep existing code */}
+            <div className="flex space-x-1">
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => fileInputRef.current?.click()}
+                disabled={isLoading}
+                className="p-2"
+              >
+                <Paperclip className="w-4 h-4" />
+              </Button>
+
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={toggleRecording} // Keep existing toggle recording logic
+                disabled={isLoading}
+                className={`p-2 ${isRecording ? 'text-red-500' : ''}`}
+              >
+                {isRecording ? <MicOff className="w-4 h-4" /> : <Mic className="w-4 h-4" />}
+              </Button>
+
+              <Button
+                type="button"
+                onClick={sendOrUpdateMessage}
+                disabled={!inputValue.trim() || isLoading || isRateLimited}
+                className="btn-primary p-2"
+              >
+                {isLoading ? (
+                  <motion.div
+                    className="w-4 h-4 border-2 border-white border-t-transparent rounded-full"
+                    animate={{ rotate: 360 }}
+                    transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
+                  />
+                ) : (
+                  <Send className="w-4 h-4" />
+                )}
+              </Button>
+            </div>
+          </div>
 
           {/* Hidden File Input */}
           <input
             ref={fileInputRef}
             type="file"
             accept="image/*,.pdf"
-            onChange={handleFileUpload}
+            onChange={handleFileUpload} // Keep existing file upload logic
             className="hidden"
           />
         </motion.div>
