@@ -1,13 +1,16 @@
+
 import React, { useState, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useI18n } from '@/contexts/I18nContext';
 import { useTheme } from '@/contexts/ThemeContext';
 import MainLayout from '@/components/layout/MainLayout';
 import MessageActions from '@/components/chatbot/MessageActions';
+import ChatSidebar from '@/components/chatbot/ChatSidebar';
+import ShareChatModal from '@/components/chatbot/ShareChatModal';
+import { useChatSession } from '@/hooks/useChatSession';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { useToast } from '@/hooks/use-toast';
-import { realTimeDb, ref, push, onValue } from '@/config/firebaseConfig';
 import { 
   Send, 
   Paperclip, 
@@ -18,7 +21,9 @@ import {
   Trash2,
   Bot,
   User,
-  Stethoscope
+  Stethoscope,
+  Menu,
+  Share2
 } from 'lucide-react';
 
 interface Message {
@@ -40,19 +45,21 @@ const Chatbot = () => {
   // Use the provided Gemini API key directly
   const apiKey = "AIzaSyAWKPfeepjAlHToguhq-n1Ai--XtvG5K44";
   console.log("Gemini API Key Check:", apiKey ? "Found" : "Missing");
-  console.log("API Key value:", apiKey);
 
-  const [messages, setMessages] = useState<Message[]>([
-    {
-      id: '1',
-      type: 'bot',
-      content: language === 'en' 
-        ? "Hello! I'm your medical AI assistant. I can help you with health-related questions, analyze symptoms, and provide medical information. How can I assist you today?"
-        : "مرحباً! أنا مساعدك الطبي الذكي. يمكنني مساعدتك في الأسئلة المتعلقة بالصحة وتحليل الأعراض وتقديم المعلومات الطبية. كيف يمكنني مساعدتك اليوم؟",
-      timestamp: new Date()
-    }
-  ]);
+  // Chat session management
+  const {
+    currentSessionId,
+    messages,
+    setMessages,
+    createNewSession,
+    loadSession,
+    addMessage,
+    updateMessage,
+    clearMessages,
+    saveMessage
+  } = useChatSession();
 
+  // UI state
   const [inputValue, setInputValue] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [isDeepThink, setIsDeepThink] = useState(false);
@@ -60,6 +67,8 @@ const Chatbot = () => {
   const [uploadedFile, setUploadedFile] = useState<File | null>(null);
   const [rateLimitCount, setRateLimitCount] = useState(0);
   const [isRateLimited, setIsRateLimited] = useState(false);
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+  const [isShareModalOpen, setIsShareModalOpen] = useState(false);
   
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -236,7 +245,7 @@ This condition involves...
       fileName: uploadedFile?.name
     };
 
-    setMessages(prev => [...prev, userMessage]);
+    addMessage(userMessage);
     setInputValue('');
     setUploadedFile(null);
     setIsLoading(true);
@@ -271,25 +280,12 @@ This condition involves...
         isDeepThink
       };
 
-      setMessages(prev => [...prev, botMessage]);
+      addMessage(botMessage);
 
       // Scroll to bottom after new message
       setTimeout(() => {
         messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
       }, 100);
-
-      // Save to Firebase
-      try {
-        const chatRef = ref(realTimeDb, 'chats/demo');
-        await push(chatRef, {
-          userMessage: userMessage.content,
-          botResponse: response,
-          timestamp: Date.now(),
-          isDeepThink
-        });
-      } catch (firebaseError) {
-        console.error("Firebase Error:", firebaseError);
-      }
 
     } catch (error) {
       if (isDeepThink) {
@@ -333,6 +329,32 @@ This condition involves...
     setTimeout(() => {
       sendOrUpdateMessage();
     }, 100);
+  };
+
+  const handleNewChat = async () => {
+    const newSessionId = await createNewSession();
+    if (newSessionId) {
+      setIsSidebarOpen(false);
+      toast({
+        title: language === 'en' ? "New Chat Started" : "بدأت محادثة جديدة",
+        description: language === 'en' 
+          ? "Starting a fresh conversation."
+          : "بدء محادثة جديدة."
+      });
+    }
+  };
+
+  const handleLoadSession = async (sessionId: string) => {
+    const success = await loadSession(sessionId);
+    if (success) {
+      setIsSidebarOpen(false);
+      toast({
+        title: language === 'en' ? "Chat Loaded" : "تم تحميل المحادثة",
+        description: language === 'en' 
+          ? "Previous conversation loaded successfully."
+          : "تم تحميل المحادثة السابقة بنجاح."
+      });
+    }
   };
 
   const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -382,23 +404,6 @@ This condition involves...
     }
   };
 
-  const clearChat = () => {
-    setMessages([{
-      id: '1',
-      type: 'bot',
-      content: language === 'en' 
-        ? "Hello! I'm your medical AI assistant. How can I assist you today?"
-        : "مرحباً! أنا مساعدك الطبي الذكي. كيف يمكنني مساعدتك اليوم؟",
-      timestamp: new Date()
-    }]);
-    toast({
-      title: language === 'en' ? "Chat Cleared" : "تم مسح المحادثة",
-      description: language === 'en' 
-        ? "Chat history has been cleared."
-        : "تم مسح تاريخ المحادثة."
-    });
-  };
-
   // Scroll to bottom when new messages arrive (not on initial load)
   useEffect(() => {
     if (messages.length > 1) {
@@ -408,6 +413,26 @@ This condition involves...
 
   return (
     <MainLayout>
+      {/* Sidebar */}
+      <ChatSidebar
+        isOpen={isSidebarOpen}
+        onToggle={() => setIsSidebarOpen(!isSidebarOpen)}
+        currentSessionId={currentSessionId}
+        onNewChat={handleNewChat}
+        onLoadSession={handleLoadSession}
+        onShareChat={() => setIsShareModalOpen(true)}
+        language={language}
+      />
+
+      {/* Share Modal */}
+      <ShareChatModal
+        isOpen={isShareModalOpen}
+        onClose={() => setIsShareModalOpen(false)}
+        messages={messages}
+        sessionId={currentSessionId}
+        language={language}
+      />
+
       <div className="container-custom max-w-4xl mx-auto pt-8 pb-4 h-screen flex flex-col">
         {/* Header */}
         <motion.div
@@ -416,23 +441,38 @@ This condition involves...
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.5 }}
         >
-          <h1 className="text-fluid-2xl font-bold mb-2 text-gradient">
-            {t('chatbot.title')}
-          </h1>
+          <div className="flex items-center justify-between mb-4">
+            {/* Menu Button */}
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => setIsSidebarOpen(true)}
+              className="p-2"
+            >
+              <Menu className="w-5 h-5" />
+            </Button>
+
+            {/* Title */}
+            <h1 className="text-fluid-2xl font-bold text-gradient">
+              {t('chatbot.title')}
+            </h1>
+
+            {/* Share Button */}
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => setIsShareModalOpen(true)}
+              className="p-2"
+            >
+              <Share2 className="w-5 h-5" />
+            </Button>
+          </div>
+          
           <p className="text-muted-foreground">
             {language === 'en' 
               ? "Powered by AI to answer your health questions in real time."
               : "مدعوم بالذكاء الاصطناعي للرد على أسئلتك الصحية في الوقت الفعلي."}
           </p>
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={clearChat}
-            className="mt-2 text-muted-foreground hover:text-destructive"
-          >
-            <Trash2 className="w-4 h-4 mr-2" />
-            {t('chatbot.clearChat')}
-          </Button>
         </motion.div>
 
         {/* Chat Messages */}

@@ -2,7 +2,7 @@
 import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
-import { realTimeDb, ref, push } from '@/config/firebaseConfig';
+import { realTimeDb, ref, push, remove, onValue } from '@/config/firebaseConfig';
 import { 
   Edit, 
   Star, 
@@ -40,6 +40,22 @@ const MessageActions: React.FC<MessageActionsProps> = ({
   const [editContent, setEditContent] = useState(message.content);
   const [isFavorited, setIsFavorited] = useState(false);
 
+  // Check if message is already favorited
+  React.useEffect(() => {
+    const favoritesRef = ref(realTimeDb, 'savedMessages');
+    const unsubscribe = onValue(favoritesRef, (snapshot) => {
+      const data = snapshot.val();
+      if (data) {
+        const isAlreadyFavorited = Object.values(data).some((item: any) => 
+          item.messageId === message.id
+        );
+        setIsFavorited(isAlreadyFavorited);
+      }
+    });
+
+    return () => unsubscribe();
+  }, [message.id]);
+
   const handleCopy = async () => {
     try {
       await navigator.clipboard.writeText(message.content);
@@ -75,28 +91,50 @@ const MessageActions: React.FC<MessageActionsProps> = ({
   const handleFavorite = async () => {
     if (message.type === 'bot') {
       try {
-        const favoritesRef = ref(realTimeDb, 'favorites');
-        await push(favoritesRef, {
-          messageId: message.id,
-          content: message.content,
-          timestamp: Date.now(),
-          isDeepThink: message.isDeepThink || false
-        });
-        
-        setIsFavorited(true);
-        toast({
-          title: language === 'en' ? "Added to Favorites!" : "تمت الإضافة للمفضلة!",
-          description: language === 'en' 
-            ? "Message saved to your favorites" 
-            : "تم حفظ الرسالة في مفضلتك"
-        });
+        if (isFavorited) {
+          // Remove from favorites
+          const favoritesRef = ref(realTimeDb, 'savedMessages');
+          onValue(favoritesRef, async (snapshot) => {
+            const data = snapshot.val();
+            if (data) {
+              const favoriteKey = Object.keys(data).find(key => 
+                data[key].messageId === message.id
+              );
+              if (favoriteKey) {
+                await remove(ref(realTimeDb, `savedMessages/${favoriteKey}`));
+                toast({
+                  title: language === 'en' ? "Removed from Favorites" : "تم الحذف من المفضلة",
+                  description: language === 'en' 
+                    ? "Message removed from your favorites" 
+                    : "تم حذف الرسالة من مفضلتك"
+                });
+              }
+            }
+          }, { onlyOnce: true });
+        } else {
+          // Add to favorites
+          const favoritesRef = ref(realTimeDb, 'savedMessages');
+          await push(favoritesRef, {
+            messageId: message.id,
+            content: message.content,
+            timestamp: Date.now(),
+            isDeepThink: message.isDeepThink || false
+          });
+          
+          toast({
+            title: language === 'en' ? "Added to Favorites!" : "تمت الإضافة للمفضلة!",
+            description: language === 'en' 
+              ? "Message saved to your favorites" 
+              : "تم حفظ الرسالة في مفضلتك"
+          });
+        }
       } catch (error) {
-        console.error('Failed to save favorite:', error);
+        console.error('Failed to update favorite:', error);
         toast({
           title: language === 'en' ? "Error" : "خطأ",
           description: language === 'en' 
-            ? "Failed to save to favorites" 
-            : "فشل في الحفظ للمفضلة",
+            ? "Failed to update favorites" 
+            : "فشل في تحديث المفضلة",
           variant: "destructive"
         });
       }
