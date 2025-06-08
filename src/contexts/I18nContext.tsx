@@ -1,6 +1,7 @@
 
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
+import i18n from '@/i18n/i18n';
 
 type Language = 'en' | 'ar';
 type Direction = 'ltr' | 'rtl';
@@ -15,7 +16,7 @@ interface I18nContextType {
 const I18nContext = createContext<I18nContextType | undefined>(undefined);
 
 export function I18nProvider({ children }: { children: React.ReactNode }) {
-  const { i18n, t } = useTranslation();
+  const { t } = useTranslation();
   const [language, setLanguage] = useState<Language>('en');
   const [direction, setDirection] = useState<Direction>('ltr');
 
