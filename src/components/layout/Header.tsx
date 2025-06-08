@@ -26,9 +26,7 @@ const Header = () => {
     { key: 'home', href: '/' },
     { key: 'about', href: '/about' },
     { key: 'chatbot', href: '/chatbot' },
-    { key: 'contact', href: '/contact' },
-    { key: 'privacy', href: '/privacy' },
-    { key: 'terms', href: '/terms' }
+    { key: 'contact', href: '/contact' }
   ];
 
   const handleLanguageToggle = () => {
@@ -42,11 +40,11 @@ const Header = () => {
       transition={{ duration: 0.6, ease: "easeOut" }}
       className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${
         isScrolled 
-          ? 'h-18 glass-card-elevated' 
-          : 'h-18 bg-transparent'
+          ? 'h-16 glass-card-elevated' 
+          : 'h-20 bg-transparent'
       }`}
     >
-      <div className="container-custom px-6">
+      <div className="container-custom">
         <div className="flex items-center justify-between h-full">
           {/* Logo & Brand */}
           <motion.div 
@@ -54,8 +52,8 @@ const Header = () => {
             whileHover={{ x: direction === 'rtl' ? -4 : 4 }}
             transition={{ duration: 0.2 }}
           >
-            <div className="w-12 h-12 bg-gradient-health rounded-lg flex items-center justify-center">
-              <span className="text-white font-bold text-xl">H</span>
+            <div className="w-10 h-10 bg-gradient-health rounded-lg flex items-center justify-center">
+              <span className="text-white font-bold text-lg">H</span>
             </div>
             <div className="relative">
               <h1 className="text-xl font-bold text-gradient">
@@ -71,41 +69,25 @@ const Header = () => {
           </motion.div>
 
           {/* Desktop Navigation */}
-          <nav className="hidden md:flex items-center space-x-4 rtl:space-x-reverse">
-            {navLinks.slice(0, 4).map((link, index) => (
+          <nav className="hidden md:flex items-center space-x-8 rtl:space-x-reverse">
+            {navLinks.map((link, index) => (
               <motion.a
                 key={link.key}
                 href={link.href}
-                className="relative text-foreground hover:text-health-primary transition-colors duration-300 font-medium text-base group px-3 py-2"
+                className="relative text-foreground hover:text-health-primary transition-colors duration-300 font-medium group"
                 initial={{ opacity: 0, y: -20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.6, delay: index * 0.1 }}
               >
-                {link.key === 'privacy' ? 'Privacy' : link.key === 'terms' ? 'Terms' : t(`navigation.${link.key}`)}
+                {t(`navigation.${link.key}`)}
                 <motion.div
-                  className="absolute -bottom-1 left-3 right-3 h-0.5 bg-health-primary rounded-full"
+                  className="absolute -bottom-1 left-0 h-0.5 bg-health-primary rounded-full"
                   initial={{ width: 0 }}
-                  whileHover={{ width: 'calc(100% - 24px)' }}
+                  whileHover={{ width: '100%' }}
                   transition={{ duration: 0.3 }}
                 />
               </motion.a>
             ))}
-            
-            {/* Secondary Links */}
-            <div className="flex items-center space-x-2 rtl:space-x-reverse ml-4 rtl:mr-4 border-l border-border pl-4 rtl:pr-4 rtl:border-r rtl:border-l-0">
-              {navLinks.slice(4).map((link, index) => (
-                <motion.a
-                  key={link.key}
-                  href={link.href}
-                  className="text-sm text-muted-foreground hover:text-health-primary transition-colors duration-300 px-2 py-1"
-                  initial={{ opacity: 0, y: -20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ duration: 0.6, delay: (index + 4) * 0.1 }}
-                >
-                  {link.key === 'privacy' ? 'Privacy' : 'Terms'}
-                </motion.a>
-              ))}
-            </div>
           </nav>
 
           {/* Theme & Language Controls */}
@@ -181,7 +163,7 @@ const Header = () => {
               direction === 'rtl' ? 'slide-in-left' : 'slide-in-right'
             }`}
           >
-            <div className="container-custom py-4 px-6">
+            <div className="container-custom py-4">
               <nav className="flex flex-col space-y-4">
                 {navLinks.map((link, index) => (
                   <motion.a
@@ -193,7 +175,7 @@ const Header = () => {
                     transition={{ duration: 0.3, delay: index * 0.1 }}
                     onClick={() => setIsMenuOpen(false)}
                   >
-                    {link.key === 'privacy' ? 'Privacy' : link.key === 'terms' ? 'Terms' : t(`navigation.${link.key}`)}
+                    {t(`navigation.${link.key}`)}
                   </motion.a>
                 ))}
               </nav>
