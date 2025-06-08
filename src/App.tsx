@@ -10,9 +10,6 @@ import Index from "./pages/Index";
 import About from "./pages/About";
 import Chatbot from "./pages/Chatbot";
 import Contact from "./pages/Contact";
-import History from "./pages/History";
-import SavedMessages from "./pages/SavedMessages";
-import FavouriteMessages from "./pages/FavouriteMessages";
 import NotFound from "./pages/NotFound";
 import "./i18n/i18n";
 
@@ -30,10 +27,6 @@ const App = () => (
               <Route path="/" element={<Index />} />
               <Route path="/about" element={<About />} />
               <Route path="/chatbot" element={<Chatbot />} />
-              <Route path="/chat/:sessionId" element={<Chatbot />} />
-              <Route path="/history" element={<History />} />
-              <Route path="/saved" element={<SavedMessages />} />
-              <Route path="/favourites" element={<FavouriteMessages />} />
               <Route path="/contact" element={<Contact />} />
               {/* Redirect login/signup to home */}
               <Route path="/login" element={<Navigate to="/" replace />} />

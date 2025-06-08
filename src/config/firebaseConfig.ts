@@ -20,8 +20,7 @@ import {
   ref, 
   set, 
   push, 
-  onValue,
-  remove
+  onValue 
 } from "firebase/database";
 
 // Firebase configuration object
@@ -64,5 +63,4 @@ export {
   set,
   push,
   onValue,
-  remove,
 };
