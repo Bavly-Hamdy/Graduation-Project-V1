@@ -1,73 +1,158 @@
-# Welcome to your Lovable project
 
-## Project info
+# Care Companion Digital Health
 
-**URL**: https://lovable.dev/projects/d14c13ce-7888-40d6-b843-6431c785551a
+A comprehensive health companion web application built with React, TypeScript, and modern web technologies.
 
-## How can I edit this code?
+## 🚀 Quick Start
 
-There are several ways of editing your application.
+1. **Clone the repository**
+   ```bash
+   git clone <repository-url>
+   cd care-companion-digital-health
+   ```
 
-**Use Lovable**
+2. **Install dependencies**
+   ```bash
+   npm install
+   ```
 
-Simply visit the [Lovable Project](https://lovable.dev/projects/d14c13ce-7888-40d6-b843-6431c785551a) and start prompting.
+3. **Set up environment variables**
+   ```bash
+   cp .env.example .env
+   # Edit .env with your Firebase and API keys
+   ```
 
-Changes made via Lovable will be committed automatically to this repo.
+4. **Start development server**
+   ```bash
+   npm run dev
+   ```
 
-**Use your preferred IDE**
+5. **Open your browser**
+   Navigate to `http://localhost:8080`
 
-If you want to work locally using your own IDE, you can clone this repo and push changes. Pushed changes will also be reflected in Lovable.
+## 🛠️ Available Scripts
 
-The only requirement is having Node.js & npm installed - [install with nvm](https://github.com/nvm-sh/nvm#installing-and-updating)
+- `npm run dev` - Start development server
+- `npm run build` - Build for production
+- `npm run preview` - Preview production build locally
+- `npm run lint` - Run ESLint
 
-Follow these steps:
+## 🏗️ Tech Stack
 
-```sh
-# Step 1: Clone the repository using the project's Git URL.
-git clone <YOUR_GIT_URL>
+- **Frontend**: React 18, TypeScript, Vite
+- **UI Components**: shadcn/ui, Tailwind CSS
+- **State Management**: React Query (TanStack Query)
+- **Backend**: Firebase (Authentication, Firestore, Hosting)
+- **Internationalization**: react-i18next
+- **Charts**: Recharts
+- **Icons**: Lucide React
 
-# Step 2: Navigate to the project directory.
-cd <YOUR_PROJECT_NAME>
+## 📱 Features
 
-# Step 3: Install the necessary dependencies.
-npm i
+- **Multi-language Support** (English, Arabic)
+- **Dark/Light Theme Toggle**
+- **Responsive Design**
+- **Health Chatbot Interface**
+- **User Authentication** (Firebase)
+- **Real-time Data Sync**
 
-# Step 4: Start the development server with auto-reloading and an instant preview.
-npm run dev
+## 🔧 Environment Setup
+
+### Required Environment Variables
+
+Copy `.env.example` to `.env` and fill in your configuration:
+
+```env
+# Firebase Configuration
+VITE_FIREBASE_API_KEY=your_firebase_api_key
+VITE_FIREBASE_AUTH_DOMAIN=your_project.firebaseapp.com
+VITE_FIREBASE_PROJECT_ID=your_project_id
+VITE_FIREBASE_STORAGE_BUCKET=your_project.appspot.com
+VITE_FIREBASE_MESSAGING_SENDER_ID=123456789
+VITE_FIREBASE_APP_ID=1:123456789:web:abcdef123456
 ```
 
-**Edit a file directly in GitHub**
+### Firebase Setup
 
-- Navigate to the desired file(s).
-- Click the "Edit" button (pencil icon) at the top right of the file view.
-- Make your changes and commit the changes.
+1. Create a Firebase project at [Firebase Console](https://console.firebase.google.com/)
+2. Enable Authentication and Firestore Database
+3. Add your domain to authorized domains
+4. Copy your config keys to `.env`
 
-**Use GitHub Codespaces**
+## 🚀 Deployment
 
-- Navigate to the main page of your repository.
-- Click on the "Code" button (green button) near the top right.
-- Select the "Codespaces" tab.
-- Click on "New codespace" to launch a new Codespace environment.
-- Edit files directly within the Codespace and commit and push your changes once you're done.
+### Firebase Hosting (Recommended)
 
-## What technologies are used for this project?
+1. **Install Firebase CLI**
+   ```bash
+   npm install -g firebase-tools
+   ```
 
-This project is built with:
+2. **Login to Firebase**
+   ```bash
+   firebase login
+   ```
 
-- Vite
-- TypeScript
-- React
-- shadcn-ui
-- Tailwind CSS
+3. **Initialize Firebase (if not done)**
+   ```bash
+   firebase init hosting
+   ```
 
-## How can I deploy this project?
+4. **Deploy**
+   ```bash
+   npm run build
+   firebase deploy
+   ```
 
-Simply open [Lovable](https://lovable.dev/projects/d14c13ce-7888-40d6-b843-6431c785551a) and click on Share -> Publish.
+### Automatic Deployment
 
-## Can I connect a custom domain to my Lovable project?
+The project includes GitHub Actions for automatic deployment:
 
-Yes, you can!
+1. Set up repository secrets in GitHub:
+   - `FIREBASE_SERVICE_ACCOUNT` - Firebase service account JSON
+   - `FIREBASE_PROJECT_ID` - Your Firebase project ID
+   - All `VITE_` environment variables
 
-To connect a domain, navigate to Project > Settings > Domains and click Connect Domain.
+2. Push to `main` branch to trigger automatic deployment
 
-Read more here: [Setting up a custom domain](https://docs.lovable.dev/tips-tricks/custom-domain#step-by-step-guide)
+## 📁 Project Structure
+
+```
+src/
+├── components/           # Reusable UI components
+│   ├── ui/              # shadcn/ui components
+│   ├── layout/          # Layout components (Header, Footer)
+│   └── chatbot/         # Chatbot-specific components
+├── pages/               # Page components
+├── hooks/               # Custom React hooks
+├── contexts/            # React contexts (Theme, i18n)
+├── lib/                 # Utility functions
+├── i18n/                # Internationalization files
+└── config/              # Configuration files
+```
+
+## 🔮 Phase 2 Roadmap
+
+- **AI Integration**: Real chatbot with OpenAI/Gemini
+- **Health Predictions**: ML models for health insights
+- **Mobile App**: React Native companion app
+- **Device Integration**: Wearable device connectivity
+- **Advanced Analytics**: Health data visualization
+
+## 🤝 Contributing
+
+1. Fork the repository
+2. Create a feature branch (`git checkout -b feature/amazing-feature`)
+3. Commit your changes (`git commit -m 'Add amazing feature'`)
+4. Push to the branch (`git push origin feature/amazing-feature`)
+5. Open a Pull Request
+
+## 📄 License
+
+This project is licensed under the MIT License.
+
+## 🆘 Support
+
+For support and questions:
+- Create an issue in the repository
+- Check the [documentation](./DEPLOYMENT.md) for deployment help
