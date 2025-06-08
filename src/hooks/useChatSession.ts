@@ -1,4 +1,3 @@
-
 import { useState, useEffect, useCallback } from 'react';
 import { realTimeDb, ref, push, set, onValue, get } from '@/config/firebaseConfig';
 
@@ -10,6 +9,7 @@ interface Message {
   fileUrl?: string;
   fileName?: string;
   isDeepThink?: boolean;
+  isTyping?: boolean;
 }
 
 interface ChatSession {
@@ -84,7 +84,8 @@ export const useChatSession = () => {
               type: messageData.type,
               content: messageData.content,
               timestamp: new Date(messageData.timestamp),
-              isDeepThink: messageData.isDeepThink || false
+              isDeepThink: messageData.isDeepThink || false,
+              isTyping: messageData.isTyping || false
             });
           });
         }
@@ -113,7 +114,8 @@ export const useChatSession = () => {
         type: message.type,
         content: message.content,
         timestamp: Date.now(),
-        isDeepThink: message.isDeepThink || false
+        isDeepThink: message.isDeepThink || false,
+        isTyping: message.isTyping || false
       });
 
       // Update session metadata
