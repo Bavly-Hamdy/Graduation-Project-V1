@@ -1,4 +1,3 @@
-
 import React, { useState, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useI18n } from '@/contexts/I18nContext';
@@ -72,6 +71,10 @@ const Chatbot = () => {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [isShareModalOpen, setIsShareModalOpen] = useState(false);
   
+  // Language detection state
+  const [replyLang, setReplyLang] = useState<'en' | 'ar' | null>(null);
+  const [hasUserSentMessage, setHasUserSentMessage] = useState(false);
+  
   // TTS state
   const [currentlyPlayingId, setCurrentlyPlayingId] = useState<string | null>(null);
   const [isPaused, setIsPaused] = useState(false);
@@ -87,9 +90,8 @@ const Chatbot = () => {
       const welcomeMessage: Message = {
         id: 'welcome',
         type: 'bot',
-        content: `Hello! I'm your medical AI assistant. I can help you with health-related questions, analyze symptoms, and provide medical information.
-
-مرحبًا! أنا مساعدك الطبي بالذكاء الاصطناعي. يمكنني مساعدتك في الاستفسار عن صحتك، تحليل الأعراض، وتقديم المعلومات الطبية.
+        content: `Hello! I'm your medical assistant. I can help you with health-related questions, analyze symptoms, and provide medical information.
+مرحبًا! أنا مساعدك الطبي. يمكنني مساعدتك في الأسئلة الصحية، تحليل الأعراض، وتقديم المعلومات الطبية.
 
 How can I assist you today?
 كيف يمكنني مساعدتك اليوم؟`,
@@ -105,6 +107,13 @@ How can I assist you today?
     const arabicChars = text.match(arabicRegex)?.length || 0;
     const totalChars = text.replace(/\s/g, '').length;
     return arabicChars > totalChars * 0.3; // If more than 30% Arabic chars, consider it Arabic
+  };
+
+  // Get closing line based on language
+  const getClosingLine = (lang: 'en' | 'ar'): string => {
+    return lang === 'en' 
+      ? "\n\nIs there anything else I can help you with today?"
+      : "\n\nهل هناك أي شيء آخر يمكنني مساعدتك به اليوم؟";
   };
 
   // Rate limiting reset
@@ -170,9 +179,10 @@ How can I assist you today?
     console.log("callGeminiAPI called with:", query);
 
     if (isNonMedicalQuery(query)) {
-      return userLanguage === 'en' 
+      const response = userLanguage === 'en' 
         ? "I'm sorry, I can only provide medical and health-related information. Please ask a question about symptoms, conditions, treatments, or wellness."
         : "آسف، يمكنني فقط تقديم المعلومات الطبية والصحية. يرجى طرح سؤال حول الأعراض أو الحالات أو العلاجات أو العافية.";
+      return response + getClosingLine(userLanguage);
     }
 
     try {
@@ -246,7 +256,10 @@ This condition involves...
       }
 
       const rawResponse = data.candidates[0].content.parts[0].text;
-      return cleanResponse(rawResponse);
+      const cleanedResponse = cleanResponse(rawResponse);
+      
+      // Add closing line
+      return cleanedResponse + getClosingLine(userLanguage);
     } catch (error) {
       console.error("Gemini API Error:", error);
       throw error;
@@ -274,8 +287,16 @@ This condition involves...
       return;
     }
 
-    // Detect user input language for dynamic response matching
-    const userLanguage = isArabicInput(inputValue) ? 'ar' : 'en';
+    // Detect user input language for the first real message and lock it
+    if (!hasUserSentMessage) {
+      const detectedLang = isArabicInput(inputValue) ? 'ar' : 'en';
+      setReplyLang(detectedLang);
+      setHasUserSentMessage(true);
+      console.log("Language detected and locked:", detectedLang);
+    }
+
+    // Use the locked language for responses
+    const userLanguage = replyLang || 'en';
 
     const userMessage: Message = {
       id: Date.now().toString(),
@@ -376,6 +397,9 @@ This condition involves...
     const newSessionId = await createNewSession();
     if (newSessionId) {
       setIsSidebarOpen(false);
+      // Reset language detection state
+      setReplyLang(null);
+      setHasUserSentMessage(false);
       // Stop any current TTS playback
       if (currentUtterance.current) {
         speechSynthesis.cancel();
@@ -396,6 +420,9 @@ This condition involves...
     const success = await loadSession(sessionId);
     if (success) {
       setIsSidebarOpen(false);
+      // Reset language detection state when loading a session
+      setReplyLang(null);
+      setHasUserSentMessage(false);
       // Stop any current TTS playback
       if (currentUtterance.current) {
         speechSynthesis.cancel();
