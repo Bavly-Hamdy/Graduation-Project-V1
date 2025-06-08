@@ -201,6 +201,8 @@ Answer only medical and health questions. If the query is outside healthcare, re
 - Use hyphens for bullet lists (e.g., "- Tremor in hands")
 - Do not use asterisks for emphasis or bullets inside the body text
 - Do not wrap content in backticks or code blocks
+- Never use multiple asterisks for decoration (no ***** or ******)
+- Keep formatting clean and professional
 
 **4. Thinking Indicator**
 - Show "💭 Chatbot is thinking..." only if Deep Think is enabled
@@ -243,7 +245,14 @@ This information is for educational purposes and does not replace consulting a q
       }
 
       const data = await response.json();
-      return data.candidates[0].content.parts[0].text;
+      let responseText = data.candidates[0].content.parts[0].text;
+      
+      // Clean up any asterisk decorations that might still appear
+      responseText = responseText.replace(/\*{3,}/g, ''); // Remove 3+ consecutive asterisks
+      responseText = responseText.replace(/^\*+\s*/gm, ''); // Remove leading asterisks
+      responseText = responseText.replace(/\s*\*+$/gm, ''); // Remove trailing asterisks
+      
+      return responseText;
     } catch (error) {
       console.error("Gemini API Error:", error);
       throw error;
@@ -271,7 +280,15 @@ This information is for educational purposes and does not replace consulting a q
   };
 
   const sendOrUpdateMessage = async () => {
-    if (!inputValue.trim() || isLoading || isRateLimited || !currentSessionId) return;
+    console.log("Send clicked, message:", inputValue);
+    console.log("Current session ID:", currentSessionId);
+    console.log("Is loading:", isLoading);
+    console.log("Is rate limited:", isRateLimited);
+    
+    if (!inputValue.trim() || isLoading || isRateLimited || !currentSessionId) {
+      console.log("Send blocked - missing requirements");
+      return;
+    }
 
     if (rateLimitCount >= 5) {
       setIsRateLimited(true);
@@ -284,6 +301,8 @@ This information is for educational purposes and does not replace consulting a q
       });
       return;
     }
+
+    console.log("Proceeding with message send...");
 
     const userMessage = {
       type: 'user',
@@ -600,7 +619,7 @@ This information is for educational purposes and does not replace consulting a q
           <div ref={messagesEndRef} />
         </div>
 
-        {/* Input Area - keep existing code */}
+        {/* Input Area */}
         <motion.div
           className="glass-card p-4 rounded-2xl border"
           initial={{ opacity: 0, y: 20 }}
@@ -650,70 +669,76 @@ This information is for educational purposes and does not replace consulting a q
           )}
 
           {/* Input Row */}
-          <div className="flex items-end space-x-2">
-            <div className="flex-1">
-              <Input
-                value={inputValue}
-                onChange={(e) => setInputValue(e.target.value)}
-                placeholder={t('chatbot.placeholder')}
-                className="resize-none border-0 focus:ring-2 focus:ring-health-primary bg-transparent"
-                onKeyPress={(e) => {
-                  if (e.key === 'Enter' && !e.shiftKey) {
-                    e.preventDefault();
-                    sendOrUpdateMessage();
-                  }
-                }}
-                disabled={isLoading || isRateLimited}
-              />
+          <form onSubmit={(e) => {
+            e.preventDefault();
+            sendOrUpdateMessage();
+          }}>
+            <div className="flex items-end space-x-2">
+              <div className="flex-1">
+                <Input
+                  value={inputValue}
+                  onChange={(e) => setInputValue(e.target.value)}
+                  placeholder={t('chatbot.placeholder')}
+                  className="resize-none border-0 focus:ring-2 focus:ring-health-primary bg-transparent"
+                  onKeyPress={(e) => {
+                    if (e.key === 'Enter' && !e.shiftKey) {
+                      e.preventDefault();
+                      sendOrUpdateMessage();
+                    }
+                  }}
+                  disabled={isLoading || isRateLimited}
+                />
+              </div>
+
+              {/* Action Buttons */}
+              <div className="flex space-x-1">
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => fileInputRef.current?.click()}
+                  disabled={isLoading}
+                  className="p-2"
+                >
+                  <Paperclip className="w-4 h-4" />
+                </Button>
+
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  onClick={toggleRecording}
+                  disabled={isLoading}
+                  className={`p-2 ${isRecording ? 'text-red-500' : ''}`}
+                >
+                  {isRecording ? <MicOff className="w-4 h-4" /> : <Mic className="w-4 h-4" />}
+                </Button>
+
+                <Button
+                  type="submit"
+                  disabled={!inputValue.trim() || isLoading || isRateLimited}
+                  className="btn-primary p-2"
+                >
+                  {isLoading ? (
+                    <motion.div
+                      className="w-4 h-4 border-2 border-white border-t-transparent rounded-full"
+                      animate={{ rotate: 360 }}
+                      transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
+                    />
+                  ) : (
+                    <Send className="w-4 h-4" />
+                  )}
+                </Button>
+              </div>
             </div>
-
-            {/* Action Buttons - keep existing code */}
-            <div className="flex space-x-1">
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => fileInputRef.current?.click()}
-                disabled={isLoading}
-                className="p-2"
-              >
-                <Paperclip className="w-4 h-4" />
-              </Button>
-
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={toggleRecording} // Keep existing toggle recording logic
-                disabled={isLoading}
-                className={`p-2 ${isRecording ? 'text-red-500' : ''}`}
-              >
-                {isRecording ? <MicOff className="w-4 h-4" /> : <Mic className="w-4 h-4" />}
-              </Button>
-
-              <Button
-                type="button"
-                onClick={sendOrUpdateMessage}
-                disabled={!inputValue.trim() || isLoading || isRateLimited}
-                className="btn-primary p-2"
-              >
-                {isLoading ? (
-                  <motion.div
-                    className="w-4 h-4 border-2 border-white border-t-transparent rounded-full"
-                    animate={{ rotate: 360 }}
-                    transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
-                  />
-                ) : (
-                  <Send className="w-4 h-4" />
-                )}
-              </Button>
-            </div>
-          </div>
+          </form>
 
           {/* Hidden File Input */}
           <input
             ref={fileInputRef}
             type="file"
             accept="image/*,.pdf"
-            onChange={handleFileUpload} // Keep existing file upload logic
+            onChange={handleFileUpload}
             className="hidden"
           />
         </motion.div>
