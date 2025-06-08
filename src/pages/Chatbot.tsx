@@ -1,3 +1,4 @@
+
 import React, { useState, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useI18n } from '@/contexts/I18nContext';
@@ -22,7 +23,9 @@ import {
   User,
   Stethoscope,
   Menu,
-  Share2
+  Share2,
+  Play,
+  Pause
 } from 'lucide-react';
 
 interface Message {
@@ -69,9 +72,40 @@ const Chatbot = () => {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [isShareModalOpen, setIsShareModalOpen] = useState(false);
   
+  // TTS state
+  const [currentlyPlayingId, setCurrentlyPlayingId] = useState<string | null>(null);
+  const [isPaused, setIsPaused] = useState(false);
+  const currentUtterance = useRef<SpeechSynthesisUtterance | null>(null);
+  
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const recognition = useRef<SpeechRecognition | null>(null);
+
+  // Add bilingual welcome message on chat initialization
+  useEffect(() => {
+    if (messages.length === 0) {
+      const welcomeMessage: Message = {
+        id: 'welcome',
+        type: 'bot',
+        content: `Hello! I'm your medical AI assistant. I can help you with health-related questions, analyze symptoms, and provide medical information.
+
+مرحبًا! أنا مساعدك الطبي بالذكاء الاصطناعي. يمكنني مساعدتك في الاستفسار عن صحتك، تحليل الأعراض، وتقديم المعلومات الطبية.
+
+How can I assist you today?
+كيف يمكنني مساعدتك اليوم؟`,
+        timestamp: new Date()
+      };
+      addMessage(welcomeMessage);
+    }
+  }, [messages.length, addMessage]);
+
+  // Detect if user input is primarily Arabic
+  const isArabicInput = (text: string): boolean => {
+    const arabicRegex = /[\u0600-\u06FF]/g;
+    const arabicChars = text.match(arabicRegex)?.length || 0;
+    const totalChars = text.replace(/\s/g, '').length;
+    return arabicChars > totalChars * 0.3; // If more than 30% Arabic chars, consider it Arabic
+  };
 
   // Rate limiting reset
   useEffect(() => {
@@ -132,11 +166,11 @@ const Chatbot = () => {
       .trim();
   };
 
-  const callGeminiAPI = async (query: string, isDeepThink: boolean): Promise<string> => {
+  const callGeminiAPI = async (query: string, isDeepThink: boolean, userLanguage: 'en' | 'ar'): Promise<string> => {
     console.log("callGeminiAPI called with:", query);
 
     if (isNonMedicalQuery(query)) {
-      return language === 'en' 
+      return userLanguage === 'en' 
         ? "I'm sorry, I can only provide medical and health-related information. Please ask a question about symptoms, conditions, treatments, or wellness."
         : "آسف، يمكنني فقط تقديم المعلومات الطبية والصحية. يرجى طرح سؤال حول الأعراض أو الحالات أو العلاجات أو العافية.";
     }
@@ -149,11 +183,14 @@ const Chatbot = () => {
 
 **1. Domain Restriction**
 Answer only medical and health questions. If the query is outside healthcare, reply:
-"I'm sorry, I can only provide medical and health-related information. Please ask a question about symptoms, conditions, treatments, or wellness."
+${userLanguage === 'en' 
+  ? "I'm sorry, I can only provide medical and health-related information. Please ask a question about symptoms, conditions, treatments, or wellness."
+  : "آسف، يمكنني فقط تقديم المعلومات الطبية والصحية. يرجى طرح سؤال حول الأعراض أو الحالات أو العلاجات أو العافية."}
 
-**2. Language & Dialect Matching**
-- If the user's input is in Arabic, reply entirely in that Arabic dialect.
-- If the user's input is in English, reply entirely in English.
+**2. Language Matching - CRITICAL**
+- The user wrote in ${userLanguage === 'ar' ? 'Arabic' : 'English'}
+- You MUST reply ENTIRELY in ${userLanguage === 'ar' ? 'Arabic' : 'English'}
+- Do NOT mix languages in your response
 
 **3. Response Format - CRITICAL**
 - Use only standard Markdown: **Bold Headings** and - bullet points
@@ -171,7 +208,9 @@ This condition involves...
 **4. Professional Tone**
 - ${isDeepThink ? 'Provide detailed, comprehensive medical analysis' : 'Provide concise, focused medical information'}
 - Use empathetic, professional medical language
-- Always end with: "This information is for educational purposes and does not replace consulting a qualified healthcare professional."
+- Always end with: "${userLanguage === 'en' 
+  ? 'This information is for educational purposes and does not replace consulting a qualified healthcare professional.'
+  : 'هذه المعلومات لأغراض تعليمية ولا تغني عن استشارة أخصائي رعاية صحية مؤهل.'}"
 
 **Length:** ${isDeepThink ? '4-6 paragraphs with detailed explanations' : '2-3 concise paragraphs'}`;
 
@@ -235,6 +274,9 @@ This condition involves...
       return;
     }
 
+    // Detect user input language for dynamic response matching
+    const userLanguage = isArabicInput(inputValue) ? 'ar' : 'en';
+
     const userMessage: Message = {
       id: Date.now().toString(),
       type: 'user',
@@ -264,7 +306,7 @@ This condition involves...
     }
 
     try {
-      const response = await callGeminiAPI(userMessage.content, isDeepThink);
+      const response = await callGeminiAPI(userMessage.content, isDeepThink, userLanguage);
       
       // Remove typing indicator if it was shown
       if (isDeepThink) {
@@ -334,6 +376,13 @@ This condition involves...
     const newSessionId = await createNewSession();
     if (newSessionId) {
       setIsSidebarOpen(false);
+      // Stop any current TTS playback
+      if (currentUtterance.current) {
+        speechSynthesis.cancel();
+        setCurrentlyPlayingId(null);
+        setIsPaused(false);
+        currentUtterance.current = null;
+      }
       toast({
         title: language === 'en' ? "New Chat Started" : "بدأت محادثة جديدة",
         description: language === 'en' 
@@ -347,6 +396,13 @@ This condition involves...
     const success = await loadSession(sessionId);
     if (success) {
       setIsSidebarOpen(false);
+      // Stop any current TTS playback
+      if (currentUtterance.current) {
+        speechSynthesis.cancel();
+        setCurrentlyPlayingId(null);
+        setIsPaused(false);
+        currentUtterance.current = null;
+      }
       toast({
         title: language === 'en' ? "Chat Loaded" : "تم تحميل المحادثة",
         description: language === 'en' 
@@ -395,12 +451,75 @@ This condition involves...
     }
   };
 
-  const speakMessage = (text: string) => {
-    if ('speechSynthesis' in window) {
-      const utterance = new SpeechSynthesisUtterance(text);
-      utterance.lang = language === 'ar' ? 'ar-SA' : 'en-US';
-      speechSynthesis.speak(utterance);
+  const handleTTSToggle = (messageId: string, text: string) => {
+    if (!('speechSynthesis' in window)) {
+      toast({
+        title: language === 'en' ? "Not Supported" : "غير مدعوم",
+        description: language === 'en' 
+          ? "Text-to-speech is not supported in your browser."
+          : "تحويل النص إلى كلام غير مدعوم في متصفحك.",
+        variant: "destructive"
+      });
+      return;
     }
+
+    // If clicking on a different message while one is playing, stop current and start new
+    if (currentlyPlayingId && currentlyPlayingId !== messageId) {
+      speechSynthesis.cancel();
+      setCurrentlyPlayingId(null);
+      setIsPaused(false);
+      currentUtterance.current = null;
+    }
+
+    // If this message is currently playing
+    if (currentlyPlayingId === messageId) {
+      if (isPaused) {
+        // Resume playback
+        speechSynthesis.resume();
+        setIsPaused(false);
+      } else if (speechSynthesis.speaking) {
+        // Pause playback
+        speechSynthesis.pause();
+        setIsPaused(true);
+      }
+      return;
+    }
+
+    // Start new playback
+    const utterance = new SpeechSynthesisUtterance(text);
+    
+    // Detect language for proper TTS voice
+    const isArabic = isArabicInput(text);
+    utterance.lang = isArabic ? 'ar-SA' : 'en-US';
+    utterance.rate = 0.9;
+    utterance.pitch = 1;
+
+    utterance.onstart = () => {
+      setCurrentlyPlayingId(messageId);
+      setIsPaused(false);
+    };
+
+    utterance.onend = () => {
+      setCurrentlyPlayingId(null);
+      setIsPaused(false);
+      currentUtterance.current = null;
+    };
+
+    utterance.onerror = () => {
+      setCurrentlyPlayingId(null);
+      setIsPaused(false);
+      currentUtterance.current = null;
+      toast({
+        title: language === 'en' ? "TTS Error" : "خطأ في التحويل الصوتي",
+        description: language === 'en' 
+          ? "Failed to play text-to-speech."
+          : "فشل في تشغيل تحويل النص إلى كلام.",
+        variant: "destructive"
+      });
+    };
+
+    currentUtterance.current = utterance;
+    speechSynthesis.speak(utterance);
   };
 
   // Scroll to bottom when new messages arrive (not on initial load)
@@ -511,6 +630,21 @@ This condition involves...
                             {message.isDeepThink && ' • Deep Think'}
                           </span>
                         </div>
+                        {/* TTS Toggle Button */}
+                        {!message.isTyping && (
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => handleTTSToggle(message.id, message.content)}
+                            className="h-6 w-6 p-0 opacity-70 hover:opacity-100"
+                          >
+                            {currentlyPlayingId === message.id && !isPaused ? (
+                              <Pause className="w-3 h-3" />
+                            ) : (
+                              <Play className="w-3 h-3" />
+                            )}
+                          </Button>
+                        )}
                       </div>
                     )}
 
@@ -574,7 +708,7 @@ This condition involves...
                     <MessageActions
                       message={message}
                       onEdit={handleEditMessage}
-                      onSpeak={speakMessage}
+                      onSpeak={(text) => handleTTSToggle(message.id, text)}
                       language={language}
                     />
                   )}
